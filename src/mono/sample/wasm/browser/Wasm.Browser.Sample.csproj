@@ -1,5 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\DefaultBrowserSample.targets" />
+  <PropertyGroup>        
+    <WasmBuildNative>true</WasmBuildNative>
+    <WasmNativeStrip>false</WasmNativeStrip>
+    <WasmNativeDebugSymbols>true</WasmNativeDebugSymbols>
+    <DebugSymbols>true</DebugSymbols>
+    <EnableAggressiveTrimming>false</EnableAggressiveTrimming>    
+    <InvariantTimezone>true</InvariantTimezone>    
+    <WasmEmitSymbolMap>true</WasmEmitSymbolMap>
+    <EmccEnableAssertions>true</EmccEnableAssertions>
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+  
   <ItemGroup>
     <WasmExtraFilesToDeploy Include="main.js" />
   </ItemGroup>

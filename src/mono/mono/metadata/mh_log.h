@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #define MH_LOG(msg, ...) { \
-  printf("MH_NATIVE_LOG: File %s | Line %d :: ", __FILE__, __LINE__); \
+  printf("MH_NATIVE_LOG: %s : %s | %d :: ", __func__, __FILE__, __LINE__); \
   printf((msg), ##__VA_ARGS__); \
   printf("\n"); \
   fflush(stdout); \

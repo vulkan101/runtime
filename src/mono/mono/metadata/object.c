@@ -287,10 +287,16 @@ mono_thread_get_main (void)
 void
 mono_type_initialization_init (void)
 {
+	printf("MH_NATIVE_LOG: \tENTERED mono_type_initialization_init\n");fflush(stdout);	
+	printf("MH_NATIVE_LOG: calling mono_coop_mutex_init_recursive\n");fflush(stdout);	
 	mono_coop_mutex_init_recursive (&type_initialization_section);
+	printf("MH_NATIVE_LOG: assigning type_initialization_hash\n");fflush(stdout);	
 	type_initialization_hash = g_hash_table_new (NULL, NULL);
+	printf("MH_NATIVE_LOG: assigning blocked_thread_hash\n");fflush(stdout);	
 	blocked_thread_hash = g_hash_table_new (NULL, NULL);
+	printf("MH_NATIVE_LOG: calling mono_coop_mutex_init\n");fflush(stdout);	
 	mono_coop_mutex_init (&ldstr_section);
+	printf("MH_NATIVE_LOG: calling mono_register_jit_icall\n");fflush(stdout);	
 	mono_register_jit_icall (ves_icall_string_alloc, mono_icall_sig_object_int, FALSE);
 }
 

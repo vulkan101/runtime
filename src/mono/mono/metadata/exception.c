@@ -15,6 +15,7 @@
 
 #include <glib.h>
 #include <config.h>
+#include <mono/metadata/mh_log.h>
 #include <mono/metadata/environment.h>
 #include <mono/metadata/exception.h>
 #include <mono/metadata/exception-internals.h>
@@ -252,7 +253,7 @@ mono_exception_new_by_name_msg (MonoImage *image, const char *name_space,
 			      const char *name, const char *msg, MonoError *error)
 {
 	HANDLE_FUNCTION_ENTER ();
-
+	MH_LOG("Test Exception Log");
 	MonoExceptionHandle ex = mono_exception_new_by_name (image, name_space, name, error);
 	goto_if_nok (error, return_null);
 
@@ -589,6 +590,7 @@ mono_get_exception_missing_member (const char *exception_type, const char *class
 MonoException *
 mono_get_exception_missing_method (const char *class_name, const char *member_name)
 {
+	MH_LOG("Test Exception Log");
 	return mono_get_exception_missing_member ("MissingMethodException", class_name, member_name);
 }
 
@@ -614,6 +616,7 @@ mono_get_exception_missing_field (const char *class_name, const char *member_nam
 static MonoException*
 mono_get_exception_argument_internal (const char *type, const char *arg, const char *msg)
 {
+	MH_LOG("Test Exception Log");
 	HANDLE_FUNCTION_ENTER ();
 	ERROR_DECL (error);
 	MonoExceptionHandle ex = mono_exception_new_argument_internal (type, arg, msg, error);
@@ -630,6 +633,7 @@ MonoException*
 mono_get_exception_argument_null (const char *arg)
 {
 	MonoException *ex;
+	MH_LOG("Test Exception Log");
 	MONO_ENTER_GC_UNSAFE;
 	ex = mono_get_exception_argument_internal ("ArgumentNullException", arg, NULL);
 	MONO_EXIT_GC_UNSAFE;
@@ -644,6 +648,7 @@ mono_get_exception_argument_null (const char *arg)
 MonoException *
 mono_get_exception_argument (const char *arg, const char *msg)
 {
+	MH_LOG("Test Exception Log");
 	return mono_get_exception_argument_internal ("ArgumentException", arg, msg);
 }
 
@@ -662,24 +667,28 @@ mono_exception_new_argument_internal (const char *type, const char *arg, const c
 MonoExceptionHandle
 mono_exception_new_argument (const char *arg, const char *msg, MonoError *error)
 {
+	MH_LOG("Test Exception Log");
 	return mono_exception_new_argument_internal ("ArgumentException", arg, msg, error);
 }
 
 MonoExceptionHandle
 mono_exception_new_argument_null (const char *arg, MonoError *error)
 {
+	MH_LOG("Test Exception Log");
 	return mono_exception_new_argument_internal ("ArgumentNullException", arg, NULL, error);
 }
 
 MonoExceptionHandle
 mono_exception_new_argument_out_of_range(const char *arg, const char *msg, MonoError *error)
 {
+	MH_LOG("Test Exception Log");
 	return mono_exception_new_argument_internal ("ArgumentOutOfRangeException", arg, msg, error);
 }
 
 MonoExceptionHandle
 mono_exception_new_serialization (const char *msg, MonoError *error)
 {
+	MH_LOG("Test Exception Log");
 	return mono_exception_new_by_name_msg (mono_get_corlib (),
 		"System.Runtime.Serialization", "SerializationException",
 		"Could not serialize unhandled exception.", error);
@@ -693,6 +702,7 @@ mono_exception_new_serialization (const char *msg, MonoError *error)
 MonoException *
 mono_get_exception_argument_out_of_range (const char *arg)
 {
+	MH_LOG("Test Exception Log");
 	return mono_get_exception_argument_internal ("ArgumentOutOfRangeException", arg, NULL);
 }
 
@@ -704,6 +714,7 @@ mono_get_exception_argument_out_of_range (const char *arg)
 MonoException *
 mono_get_exception_thread_state (const char *msg)
 {
+	MH_LOG("Test Exception Log");
 	return mono_exception_from_name_msg (
 		mono_get_corlib (), "System.Threading", "ThreadStateException", msg);
 }
@@ -716,6 +727,7 @@ mono_get_exception_thread_state (const char *msg)
 MonoException *
 mono_get_exception_io (const char *msg)
 {
+	MH_LOG("Test Exception Log");
 	return mono_exception_from_name_msg (
 		mono_get_corlib (), "System.IO", "IOException", msg);
 }
@@ -731,6 +743,7 @@ mono_get_exception_file_not_found (MonoString *fname_raw)
 	HANDLE_FUNCTION_ENTER ();
 	ERROR_DECL (error);
 	MONO_HANDLE_DCL (MonoString, fname);
+	MH_LOG("Test Exception Log");
 	MonoExceptionHandle ret = mono_exception_from_name_two_strings_checked (mono_get_corlib (), "System.IO", "FileNotFoundException", fname, fname, error);
 	mono_error_assert_ok (error);
 	HANDLE_FUNCTION_RETURN_OBJ (ret);
@@ -770,6 +783,7 @@ mono_get_exception_type_initialization (const gchar *type_name, MonoException* i
 	HANDLE_FUNCTION_ENTER ();
 	MONO_HANDLE_DCL (MonoException, inner);
 	ERROR_DECL (error);
+	MH_LOG("Test Exception Log");
 	MonoExceptionHandle ret = mono_get_exception_type_initialization_handle (type_name, inner, error);
 	if (!is_ok (error)) {
 		ret = MONO_HANDLE_CAST (MonoException, mono_new_null ());
@@ -788,7 +802,7 @@ mono_get_exception_type_initialization_handle (const gchar *type_name, MonoExcep
 	gpointer iter;
 
 	error_init (error);
-
+	MH_LOG("Test Exception Log");
 	klass = mono_class_load_from_name (mono_get_corlib (), "System", "TypeInitializationException");
 
 	mono_class_init_internal (klass);
@@ -829,6 +843,7 @@ exit:
 MonoException *
 mono_get_exception_synchronization_lock (const char *msg)
 {
+	MH_LOG("Test Exception Log");
 	return mono_exception_from_name_msg (mono_get_corlib (), "System.Threading", "SynchronizationLockException", msg);
 }
 
@@ -840,6 +855,7 @@ mono_get_exception_synchronization_lock (const char *msg)
 MonoException *
 mono_get_exception_cannot_unload_appdomain (const char *msg)
 {
+	MH_LOG("Test Exception Log");
 	return mono_exception_from_name_msg (mono_get_corlib (), "System", "CannotUnloadAppDomainException", msg);
 }
 
@@ -922,6 +938,7 @@ mono_get_exception_out_of_memory_handle (void)
 MonoException *
 mono_get_exception_field_access (void)
 {
+	MH_LOG("Test Exception Log");
 	return mono_exception_from_name (mono_get_corlib (), "System", "FieldAccessException");
 }
 
@@ -933,6 +950,7 @@ mono_get_exception_field_access (void)
 MonoException *
 mono_get_exception_field_access_msg (const char *msg)
 {
+	MH_LOG("Test Exception Log");
 	return mono_exception_from_name_msg (mono_get_corlib (), "System", "FieldAccessException", msg);
 }
 

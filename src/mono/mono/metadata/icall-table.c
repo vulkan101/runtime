@@ -35,6 +35,7 @@
 #include <mono/utils/mono-publib.h>
 #include <mono/utils/bsearch.h>
 #include <mono/metadata/icalls.h>
+#include <mono/metadata/mh_log.h>
 #include "handle-decl.h"
 #include "icall-decl.h"
 
@@ -45,7 +46,7 @@
 #define HANDLES_REUSE_WRAPPER		HANDLES
 #define MONO_HANDLE_REGISTER_ICALL(...) /* nothing  */
 
-//#define TEST_ICALL_SYMBOL_MAP 1
+#define TEST_ICALL_SYMBOL_MAP 1
 
 // Generate Icall_ constants
 enum {
@@ -317,6 +318,8 @@ mono_lookup_icall_symbol_internal (gpointer func)
 	T const * const slot = (const T*)bsearch (func, static_functions_sorted, N, sizeof (T), mono_bsearch_icall_function_compare_indirect);
 	if (!slot)
 		return NULL;
+	MH_LOG("icall_functions pointer is %p", icall_functions);
+	MH_LOG("Slot for %s is %d", icall_functions [*slot].name, *slot);
 	return icall_functions [*slot].name;
 #else
 	fprintf (stderr, "icall symbol maps not enabled, pass --enable-icall-symbol-map to configure.\n");

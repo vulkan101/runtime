@@ -4,6 +4,7 @@
  */
 
 #include <config.h>
+#include <mono/metadata/mh_log.h>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/gc-internals.h>
 #include <mono/metadata/mono-debug.h>
@@ -779,14 +780,22 @@ MonoProfilerCallInstrumentationFlags
 mono_profiler_get_call_instrumentation_flags (MonoMethod *method)
 {
 	MonoProfilerCallInstrumentationFlags flags = MONO_PROFILER_CALL_INSTRUMENTATION_NONE;
-
+	MH_LOG("\t\tgetting filters");
 	for (MonoProfilerHandle handle = mono_profiler_state.profilers; handle; handle = handle->next) {
+		MH_LOG("\t\t\thandle = %p. sizeof filter = %zu", handle, sizeof(handle->call_instrumentation_filter));
 		MonoProfilerCallInstrumentationFilterCallback cb = (MonoProfilerCallInstrumentationFilterCallback)handle->call_instrumentation_filter;
 
 		if (cb)
+		{
+			MH_LOG("\t\t\tCalling cb");
 			flags |= cb (handle->prof, method);
+			MH_LOG("\t\t\tCalled cb");
+		}
+		else
+			MH_LOG("\t\t\tnull cb");
+		MH_LOG("\t\t\tflags = %d", flags);
 	}
-
+	MH_LOG("\t\treturning from mono_profiler_get_call_instrumentation_flags, flags = %d", flags);
 	return flags;
 }
 

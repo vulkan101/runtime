@@ -14,6 +14,7 @@
 
 #include "mini.h"
 #include "ee.h"
+#include <mono/metadata/mh_log.h>
 
 /*
  * Per-memory manager information maintained by the JIT.
@@ -84,6 +85,7 @@ get_default_mem_manager (void)
 static inline MonoJitMemoryManager*
 jit_mm_for_method (MonoMethod *method)
 {
+	MH_LOG("jit_mm_for_method for: %s", method->name);
 	return (MonoJitMemoryManager*)m_method_get_mem_manager (method)->runtime_info;
 }
 

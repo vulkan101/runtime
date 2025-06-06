@@ -4699,8 +4699,12 @@ mini_init (const char *filename)
 		else
 			global_codeman = mono_code_manager_new_aot ();
 	}
-
+	printf("MH_NATIVE_LOG: will log..\n");
+	printf("MH_NATIVE_LOG: mini_init_about to memset %p %zu \n", &callbacks, sizeof (callbacks));
+	fflush(stdout);
 	memset (&callbacks, 0, sizeof (callbacks));
+	printf("MH_NATIVE_LOG: assigning create_ftnptr\n");
+	fflush(stdout);
 	callbacks.create_ftnptr = mini_create_ftnptr;
 	callbacks.get_addr_from_ftnptr = mini_get_addr_from_ftnptr;
 	callbacks.get_runtime_build_info = mono_get_runtime_build_info;
@@ -4711,7 +4715,10 @@ mini_init (const char *filename)
 	callbacks.get_vtable_trampoline = mini_get_vtable_trampoline;
 	callbacks.get_imt_trampoline = mini_get_imt_trampoline;
 	callbacks.imt_entry_inited = mini_imt_entry_inited;
+	printf("MH_NATIVE_LOG: assigning mini_init_delegate\n");
+	fflush(stdout);
 	callbacks.init_delegate = mini_init_delegate;
+	
 #define JIT_INVOKE_WORKS
 #ifdef JIT_INVOKE_WORKS
 	callbacks.runtime_invoke = mono_jit_runtime_invoke;
@@ -4751,9 +4758,11 @@ mini_init (const char *filename)
 	} else {
 		callbacks.build_imt_trampoline = mono_arch_build_imt_trampoline;
 	}
-
+	printf("MH_NATIVE_LOG: finished callback assignments, installing callbacks\n");
+	fflush(stdout);
 	mono_install_callbacks (&callbacks);
-
+	printf("MH_NATIVE_LOG: installed callbacks\n");
+	fflush(stdout);
 #ifndef HOST_WIN32
 	mono_w32handle_init ();
 #endif
@@ -4762,12 +4771,17 @@ mini_init (const char *filename)
 	ensure_stack_size (5 * 1024 * 1024);
 #endif // ENSURE_PRIMARY_STACK_SIZE
 
+	printf("MH_NATIVE_LOG: calling mono_thread_info_runtime_init\n");
+	fflush(stdout);
 	mono_thread_info_runtime_init (&ticallbacks);
-
+	
 	if (g_hasenv ("MONO_DEBUG")) {
+		printf("MH_NATIVE_LOG: calling mini_parse_debug_options\n");
+		fflush(stdout);
 		mini_parse_debug_options ();
 	}
-
+	printf("MH_NATIVE_LOG: calling mono_code_manager_init\n");
+	fflush(stdout);
 	mono_code_manager_init (mono_compile_aot);
 
 #ifdef MONO_ARCH_HAVE_CODE_CHUNK_TRACKING
@@ -4782,13 +4796,15 @@ mini_init (const char *filename)
 
 	mono_code_manager_install_callbacks (&code_manager_callbacks);
 #endif
-
+	printf("MH_NATIVE_LOG: calling mono_hwcap_init\n");
+	fflush(stdout);
 	mono_hwcap_init ();
 
 	mono_arch_cpu_init ();
 
 	mono_arch_init ();
-
+	printf("MH_NATIVE_LOG: calling mono_unwind_init\n");
+	fflush(stdout);
 	mono_unwind_init ();
 
 	if (mini_debug_options.lldb || g_hasenv ("MONO_LLDB"))
@@ -4798,18 +4814,21 @@ mini_init (const char *filename)
 	if (mono_use_llvm)
 		mono_llvm_init (!mono_compile_aot);
 #endif
-
+	printf("MH_NATIVE_LOG: calling mono_trampolines_init\n");
+	fflush(stdout);
 	mono_trampolines_init ();
 
 	if (default_opt & MONO_OPT_AOT)
 		mono_aot_init ();
-
+	printf("MH_NATIVE_LOG: calling mono_component_debugger\n");
+	fflush(stdout);
 	mono_component_debugger ()->init ();
 
 #ifdef MONO_ARCH_GSHARED_SUPPORTED
 	mono_set_generic_sharing_supported (TRUE);
 #endif
-
+	printf("MH_NATIVE_LOG: calling mono_thread_info_signals_init\n");
+	fflush(stdout);
 	mono_thread_info_signals_init ();
 
 	mono_init_native_crash_info ();
@@ -4849,14 +4868,19 @@ mini_init (const char *filename)
 		 */
 		mono_runtime_set_no_exec (TRUE);
 	}
-
+	printf("MH_NATIVE_LOG: calling mono_init %s\n", filename);
+	fflush(stdout);
 	domain = mono_init (filename);
 
 	if (mono_compile_aot)
 		mono_component_diagnostics_server ()->disable ();
 
+	printf("MH_NATIVE_LOG: calling mono_component_event_pipe()->init\n");
+	fflush(stdout);
 	mono_component_event_pipe ()->init ();
 
+	printf("MH_NATIVE_LOG: calling mono_component_event_pipe()->add_rundown_execution_checkpoint_2\n");
+	fflush(stdout);
 	// EventPipe up is now up and running, convert 100ns ticks since runtime init into EventPipe compatbile timestamp (using negative delta to represent timestamp in past).
 	// Add RuntimeInit execution checkpoint using converted timestamp.
 	mono_component_event_pipe ()->add_rundown_execution_checkpoint_2 ("RuntimeInit", mono_component_event_pipe ()->convert_100ns_ticks_to_timestamp_t (-mono_component_event_pipe_100ns_ticks_stop ()));
@@ -4866,7 +4890,8 @@ mini_init (const char *filename)
 		mono_code_manager_set_read_only (mono_mem_manager_get_ambient ()->code_mp);
 		mono_marshal_use_aot_wrappers (TRUE);
 	}
-
+	printf("MH_NATIVE_LOG: calling mono_arch_finish_init\n");
+	fflush(stdout);
 	/*Init arch tls information only after the metadata side is inited to make sure we see dynamic appdomain tls keys*/
 	mono_arch_finish_init ();
 
@@ -4877,7 +4902,8 @@ mini_init (const char *filename)
 	mini_gc_init ();
 
 	mono_create_icall_signatures ();
-
+	printf("MH_NATIVE_LOG: calling register_counters\n");
+	fflush(stdout);
 	register_counters ();
 
 #define JIT_CALLS_WORK
@@ -4886,7 +4912,7 @@ mini_init (const char *filename)
 	mono_marshal_init ();
 
 	mono_arch_register_lowlevel_calls ();
-
+	printf("MH_NATIVE_LOG: calling register_icalls\n");fflush(stdout);	
 	register_icalls ();
 
 	mono_generic_sharing_init ();
@@ -4895,19 +4921,23 @@ mini_init (const char *filename)
 	mono_simd_intrinsics_init ();
 
 	register_trampolines (domain);
-
+	printf("MH_NATIVE_LOG: calling mono_mem_account_register_counters\n");fflush(stdout);	
 	mono_mem_account_register_counters ();
 
 #define JIT_RUNTIME_WORKS
 #ifdef JIT_RUNTIME_WORKS
+	printf("MH_NATIVE_LOG: calling mono_install_runtime_cleanup\n");fflush(stdout);	
 	mono_install_runtime_cleanup (runtime_cleanup);
+	printf("MH_NATIVE_LOG: calling mono_runtime_init_checked\n");fflush(stdout);	
 	mono_runtime_init_checked (domain, (MonoThreadStartCB)mono_thread_start_cb, mono_thread_attach_cb, error);
 	mono_error_assert_ok (error);
+	printf("MH_NATIVE_LOG: calling mono_thread_internal_attach\n");fflush(stdout);	
 	mono_thread_internal_attach (domain);
 	MONO_PROFILER_RAISE (thread_name, (MONO_NATIVE_THREAD_ID_TO_UINT (mono_native_thread_id_get ()), "Main"));
 #endif
+	printf("MH_NATIVE_LOG: calling mono_threads_set_runtime_startup_finished\n");fflush(stdout);	
 	mono_threads_set_runtime_startup_finished ();
-
+	printf("MH_NATIVE_LOG: calling mono_component_event_pipe ()->finish_init ()\n");fflush(stdout);	
 	mono_component_event_pipe ()->finish_init ();
 
 #ifdef ENABLE_EXPERIMENT_TIERED
@@ -4916,12 +4946,14 @@ mini_init (const char *filename)
 		mini_tiered_init ();
 	}
 #endif
-
+	
 	if (mono_profiler_sampling_enabled ())
 		mono_runtime_setup_stat_profiler ();
 
 	MONO_PROFILER_RAISE (runtime_initialized, ());
-
+	printf("MH_NATIVE_LOG: calling mono_create_icall_signatures\n");fflush(stdout);	
+	mono_create_icall_signatures ();
+	printf("MH_NATIVE_LOG: calling mono_runtime_run_startup_hooks\n");fflush(stdout);
 	mono_runtime_run_startup_hooks ();
 
 	MONO_VES_INIT_END ();

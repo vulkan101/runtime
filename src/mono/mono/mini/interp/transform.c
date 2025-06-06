@@ -2814,16 +2814,76 @@ interp_type_as_ptr (MonoType *tp)
 	return FALSE;
 }
 
-#define INTERP_TYPE_AS_PTR(tp) interp_type_as_ptr (tp)
-
-static MintICallSig
-interp_get_icall_sig (MonoMethodSignature *sig)
+static gboolean
+interp_type_as_ptr4 (MonoType *tp)
 {
-	MintICallSig op = MINT_ICALLSIG_MAX;
+	if (MONO_TYPE_IS_POINTER (tp))
+		return TRUE;
+	if (MONO_TYPE_IS_REFERENCE (tp))
+		return TRUE;
+	if ((tp)->type == MONO_TYPE_I4)
+		return TRUE;
+	if ((tp)->type == MONO_TYPE_BOOLEAN)
+		return TRUE;
+	if ((tp)->type == MONO_TYPE_CHAR)
+		return TRUE;
+	if ((tp)->type == MONO_TYPE_VALUETYPE && m_class_is_enumtype (m_type_data_get_klass_unchecked (tp)))
+		return TRUE;
+	if (is_scalar_vtype (tp))
+		return TRUE;
+	return FALSE;
+}
+
+static gboolean
+interp_type_as_ptr8 (MonoType *tp)
+{
+	if (MONO_TYPE_IS_POINTER (tp))
+		return TRUE;
+	if (MONO_TYPE_IS_REFERENCE (tp))
+		return TRUE;	
+	if ((tp)->type == MONO_TYPE_I8 || (tp)->type == MONO_TYPE_U8)
+		return TRUE;		
+	if ((tp)->type == MONO_TYPE_R8)
+		return TRUE;		
+	 
+	return FALSE;
+}
+
+#define INTERP_TYPE_AS_PTR(tp) interp_type_as_ptr (tp)
+#define INTERP_TYPE_AS_PTR4(tp) interp_type_as_ptr4 (tp)
+#define INTERP_TYPE_AS_PTR8(tp) interp_type_as_ptr8 (tp)
+
+static void LogICallSigOld(MintICallSigOLD sig)
+{
+	switch (sig)
+	{
+	case MINT_ICALLSIG_V_V_OLD:MH_LOG("OLD: MINT_ICALLSIG_V_V_OLD"); break;
+	case MINT_ICALLSIG_V_P:MH_LOG("OLD: MINT_ICALLSIG_V_P"); break;
+	case MINT_ICALLSIG_P_V:MH_LOG("OLD: MINT_ICALLSIG_P_V"); break;
+	case MINT_ICALLSIG_P_P:MH_LOG("OLD: MINT_ICALLSIG_P_P"); break;
+	case MINT_ICALLSIG_PP_V:MH_LOG("OLD: MINT_ICALLSIG_PP_V"); break;
+	case MINT_ICALLSIG_PP_P:MH_LOG("OLD: MINT_ICALLSIG_PP_P"); break;
+	case MINT_ICALLSIG_PPP_V:MH_LOG("OLD: MINT_ICALLSIG_PPP_V"); break;
+	case MINT_ICALLSIG_PPP_P:MH_LOG("OLD: MINT_ICALLSIG_PPP_P"); break;
+	case MINT_ICALLSIG_PPPP_V:MH_LOG("OLD: MINT_ICALLSIG_PPPP_V"); break;
+	case MINT_ICALLSIG_PPPP_P:MH_LOG("OLD: MINT_ICALLSIG_PPPP_P"); break;
+	case MINT_ICALLSIG_PPPPP_V:MH_LOG("OLD: MINT_ICALLSIG_PPPPP_V"); break;
+	case MINT_ICALLSIG_PPPPP_P:MH_LOG("OLD: MINT_ICALLSIG_PPPPP_P"); break;
+	case MINT_ICALLSIG_PPPPPP_V:MH_LOG("OLD: MINT_ICALLSIG_PPPPPP_V"); break;
+	case MINT_ICALLSIG_PPPPPP_P:MH_LOG("OLD: MINT_ICALLSIG_PPPPPP_P"); break;
+	case MINT_ICALLSIG_MAX_OLD:MH_LOG("OLD: MINT_ICALLSIG_MAX_OLD"); break;
+		default:
+			MH_LOG("OLD: Unrecognised signature");
+	}
+}
+static MintICallSigOLD
+interp_get_icall_sigOLD (MonoMethodSignature *sig)
+{
+	MintICallSigOLD op = MINT_ICALLSIG_MAX_OLD;
 	switch (sig->param_count) {
 	case 0:
 		if (MONO_TYPE_IS_VOID (sig->ret))
-			op = MINT_ICALLSIG_V_V;
+			op = MINT_ICALLSIG_V_V_OLD;
 		else if (INTERP_TYPE_AS_PTR (sig->ret))
 			op = MINT_ICALLSIG_V_P;
 		break;
@@ -2912,6 +2972,45 @@ interp_get_icall_sig (MonoMethodSignature *sig)
 		}
 		break;
 	}
+	return op;
+}
+
+static MintICallSig
+interp_get_icall_sig (MonoMethodSignature *sig)
+{
+	MintICallSig op = MINT_ICALLSIG_MAX;
+	int code = 0; // (void)
+	#ifdef HOST_WASM
+	MH_LOG("Getting call signature - stack trace to follow");
+	mono_wasm_print_stack_trace ();
+	#endif
+	// first the return type	
+	if (INTERP_TYPE_AS_PTR8 (sig->ret))
+		code = 8;
+	else if (INTERP_TYPE_AS_PTR4 (sig->ret))
+		code = 4;
+	MH_LOG("\tEnum calculation: return type gives %d. Param count is %d", code, sig->param_count);
+	/* last param is number of 10s*/
+	for (int i = sig->param_count-1, place = 10; i >= 0; i--, place *= 10)
+	{	
+		int val = 0;
+		if (MONO_TYPE_IS_VOID (sig->params [i]))
+			val = 0;
+		else if (INTERP_TYPE_AS_PTR8 (sig->params [i]))
+			val = 8;
+		else if (INTERP_TYPE_AS_PTR4 (sig->params [i]))
+			val = 4;
+		MH_LOG("\tEnum calculation: adding %d (%d * %d)", val * place, val, place);
+		code += val * place;
+		
+	}
+	MH_LOG("Enum calculated: %d", code);
+	LogICallSigOld(interp_get_icall_sigOLD(sig));
+	op = (MintICallSig)code;
+	// test size limit of this op code
+	if( op > 6666)
+		op = 6666;
+	MH_LOG("Returning: %d", (int)op);
 	return op;
 }
 
