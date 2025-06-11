@@ -239,6 +239,10 @@ set(interp_sources
     interp/interp.c
     interp/interp-intrins.h
     interp/interp-intrins.c
+    interp/interp-enum-codecs.c
+    interp/interp-enum-codecs.h
+    interp/interp-icalls.c
+    interp/interp-icalls.h
     interp/mintops.h
     interp/mintops.c
     interp/transform.c

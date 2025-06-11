@@ -67,6 +67,7 @@
 #include "mintops.h"
 #include "interp-intrins.h"
 #include "tiering.h"
+#include "interp-icalls.h"
 
 #ifdef INTERP_ENABLE_SIMD
 #include "interp-simd.h"
@@ -814,7 +815,7 @@ get_virtual_method_fast (InterpMethod *imethod, MonoVTable *vtable, int offset)
 	}
 }
 
-static void
+void 
 stackval_from_data (MonoType *type, stackval *result, const void *data, gboolean pinvoke)
 {
 	if (m_type_is_byref (type)) {
@@ -2385,272 +2386,22 @@ interp_entry (InterpEntryData *data)
 		stackval_to_data (type, frame.stack, data->res, FALSE);
 }
 
-static void
-do_icall (MonoMethodSignature *sig, MintICallSig op, stackval *ret_sp, stackval *sp, gpointer ptr, gboolean save_last_error)
+/* MONO_NO_OPTIMIZATION is needed due to usage of INTERP_PUSH_LMF_WITH_CTX. */
+#ifdef _MSC_VER
+#pragma optimize ("", off)
+#endif
+static void 
+update_stackval(MonoMethodSignature *sig, stackval *ret_sp)
 {
-	if (save_last_error)
-		mono_marshal_clear_last_error ();
-	MH_LOG("About to execute function, sig enum value is: %d", op);	
-	switch (op) {		
-		case MINT_ICALLSIG_V_V: {
-			typedef void (*T)(void);
-			T func = (T)ptr;		
-        		func ();		
-			break;
-		}
-		case MINT_ICALLSIG_V_4: {
-			typedef I4 (*T)(void);									
-			T func = (T)ptr;		
-			MH_LOG("About to execute MINT_ICALLSIG_V_4");
-			int value = func();
-			MH_LOG("Executed..");	
-			ret_sp->data.p = (I8)value;
-			MH_LOG("Assigned..");	
-			break;
-		}
-		case MINT_ICALLSIG_V_8: {
-			typedef gpointer (*T)(void);									
-			T func = (T)ptr;							
-			ret_sp->data.p = func ();				
-			break;
-		}
-		case MINT_ICALLSIG_4_V:
-		case MINT_ICALLSIG_8_V:				
-		{
-			typedef void (*T)(I8);
-			T func = (T)ptr;		
-			func (sp [0].data.p);		
-			break;
-		}
-		case MINT_ICALLSIG_4_4:
-		case MINT_ICALLSIG_8_4:
-		{
-			typedef I4 (*T)(I8);
-			T func = (T)ptr;		
-			ret_sp->data.p = (I8)func (sp [0].data.p);					
-			break;
-		}
-		case MINT_ICALLSIG_4_8:
-		case MINT_ICALLSIG_8_8:	
-		{
-			typedef I8 (*T)(I8);
-			T func = (T)ptr;		
-			ret_sp->data.p = func (sp [0].data.p);		
-			break;
-		}	
-		case MINT_ICALLSIG_44_V:
-		case MINT_ICALLSIG_48_V:
-		case MINT_ICALLSIG_84_V:
-		case MINT_ICALLSIG_88_V:
-		{
-			typedef void (*T)(I8,I8);
-			T func = (T)ptr;		
-			func (sp [0].data.p, sp [1].data.p);		
-			break;
-		}
-		/*case MINT_ICALLSIG_PP_P: */
-		case MINT_ICALLSIG_44_4:
-		case MINT_ICALLSIG_48_4:
-		case MINT_ICALLSIG_84_4:
-		case MINT_ICALLSIG_88_4:
-		case MINT_ICALLSIG_44_8:
-		case MINT_ICALLSIG_48_8:
-		case MINT_ICALLSIG_84_8:
-		case MINT_ICALLSIG_88_8:											
-		{
-			typedef I8 (*T)(I8,I8);
-			T func = (T)ptr;		
-			ret_sp->data.p = func (sp [0].data.p, sp [1].data.p);		
-			break;
-		}	
-		case MINT_ICALLSIG_444_V:
-		case MINT_ICALLSIG_448_V:
-		case MINT_ICALLSIG_484_V:
-		case MINT_ICALLSIG_488_V:
-		case MINT_ICALLSIG_844_V:
-		case MINT_ICALLSIG_848_V:
-		case MINT_ICALLSIG_884_V:
-		case MINT_ICALLSIG_888_V:	
-		{
-			typedef void (*T)(gpointer,gpointer,gpointer);
-			T func = (T)ptr;		
-			func (sp [0].data.p, sp [1].data.p, sp [2].data.p);		
-			break;
-		}
-		/*case MINT_ICALLSIG_PPP_P: */
-		case MINT_ICALLSIG_444_4:
-		case MINT_ICALLSIG_444_8:
-		case MINT_ICALLSIG_448_4:
-		case MINT_ICALLSIG_448_8:
-		case MINT_ICALLSIG_484_4:
-		case MINT_ICALLSIG_484_8:
-		case MINT_ICALLSIG_488_4:
-		case MINT_ICALLSIG_488_8:
-		case MINT_ICALLSIG_844_4:
-		case MINT_ICALLSIG_844_8:
-		case MINT_ICALLSIG_848_4:
-		case MINT_ICALLSIG_848_8:
-		case MINT_ICALLSIG_884_4:
-		case MINT_ICALLSIG_884_8:
-		case MINT_ICALLSIG_888_4:
-		case MINT_ICALLSIG_888_8:
-		{
-			if ((int)op % 10 == 8) {
-				typedef I8 (*T)(gpointer,gpointer,gpointer);
-				T func = (T)ptr;		
-				ret_sp->data.p = func (sp [0].data.p, sp [1].data.p, sp [2].data.p);		
-			}
-			else
-			{
-				typedef I4 (*T)(gpointer,gpointer,gpointer);
-				T func = (T)ptr;		
-				ret_sp->data.p = (I8) func (sp [0].data.p, sp [1].data.p, sp [2].data.p);		
-			}
-			break;
-		}
-		/*case MINT_ICALLSIG_PPPP_V:*/
-		case MINT_ICALLSIG_4444_V:
-		case MINT_ICALLSIG_4448_V:
-		case MINT_ICALLSIG_4484_V:
-		case MINT_ICALLSIG_4488_V:
-		case MINT_ICALLSIG_4844_V:
-		case MINT_ICALLSIG_4848_V:
-		case MINT_ICALLSIG_4884_V:
-		case MINT_ICALLSIG_4888_V:
-		case MINT_ICALLSIG_8444_V:
-		case MINT_ICALLSIG_8448_V:
-		case MINT_ICALLSIG_8484_V:
-		case MINT_ICALLSIG_8488_V:
-		case MINT_ICALLSIG_8844_V:
-		case MINT_ICALLSIG_8848_V:
-		case MINT_ICALLSIG_8884_V:
-		case MINT_ICALLSIG_8888_V:
-		{
-			typedef void (*T)(gpointer,gpointer,gpointer,gpointer);
-			T func = (T)ptr;		
-			func (sp [0].data.p, sp [1].data.p, sp [2].data.p, sp [3].data.p);				
-			break;
-		}
-		/*case MINT_ICALLSIG_PPPP_P: */
-		case MINT_ICALLSIG_4444_4:
-		case MINT_ICALLSIG_4444_8:
-		case MINT_ICALLSIG_4448_4:
-		case MINT_ICALLSIG_4448_8:
-		case MINT_ICALLSIG_4484_4:
-		case MINT_ICALLSIG_4484_8:
-		case MINT_ICALLSIG_4488_4:
-		case MINT_ICALLSIG_4488_8:
-		case MINT_ICALLSIG_4844_4:
-		case MINT_ICALLSIG_4844_8:
-		case MINT_ICALLSIG_4848_4:
-		case MINT_ICALLSIG_4848_8:
-		case MINT_ICALLSIG_4884_4:
-		case MINT_ICALLSIG_4884_8:
-		case MINT_ICALLSIG_4888_4:
-		case MINT_ICALLSIG_4888_8:
-		case MINT_ICALLSIG_8444_4:
-		case MINT_ICALLSIG_8444_8:
-		case MINT_ICALLSIG_8448_4:
-		case MINT_ICALLSIG_8448_8:
-		case MINT_ICALLSIG_8484_4:
-		case MINT_ICALLSIG_8484_8:
-		case MINT_ICALLSIG_8488_4:
-		case MINT_ICALLSIG_8488_8:
-		case MINT_ICALLSIG_8844_4:
-		case MINT_ICALLSIG_8844_8:
-		case MINT_ICALLSIG_8848_4:
-		case MINT_ICALLSIG_8848_8:
-		case MINT_ICALLSIG_8884_4:
-		case MINT_ICALLSIG_8884_8:
-		case MINT_ICALLSIG_8888_4:
-		case MINT_ICALLSIG_8888_8:
-		{			
-			if ((int)op % 10 == 8) {
-				typedef I8 (*T)(gpointer,gpointer,gpointer,gpointer);
-				T func = (T)ptr;			
-				ret_sp->data.p = func (sp [0].data.p, sp [1].data.p, sp [2].data.p, sp [3].data.p);
-			}
-			else {
-				typedef I4 (*T)(gpointer,gpointer,gpointer,gpointer);
-				T func = (T)ptr;			
-				ret_sp->data.p = (I8)func (sp [0].data.p, sp [1].data.p, sp [2].data.p, sp [3].data.p);
-			}		
-			break;		
-		}	
-		default: // handle the other cases with some conditionals	
-		{
-			if ((int)op >= MINT_ICALLSIG_44444_V && (int)op <= MINT_ICALLSIG_88888_8)
-			{		
-				int returnType = (int)op % 10;
-				MH_LOG("Handling MINT_ICALLSIG_44444_V to MINT_ICALLSIG_88888_8");
-				switch (returnType) {
-					case 0: {
-						typedef void (*T)(gpointer,gpointer,gpointer,gpointer,gpointer);
-						T func = (T)ptr;		
-						func (sp [0].data.p, sp [1].data.p, sp [2].data.p, sp [3].data.p, sp [4].data.p);
-					}
-					case 4: {
-						typedef I4 (*T)(gpointer,gpointer,gpointer,gpointer,gpointer);
-						T func = (T)ptr;
-						ret_sp->data.p = (I8)func (sp [0].data.p, sp [1].data.p, sp [2].data.p, sp [3].data.p, sp [4].data.p);		
-					}
-					case 8: {
-						typedef I8 (*T)(gpointer,gpointer,gpointer,gpointer,gpointer);
-						T func = (T)ptr;
-						ret_sp->data.p = (I8)func (sp [0].data.p, sp [1].data.p, sp [2].data.p, sp [3].data.p, sp [4].data.p);		
-					}	
-				}
-			}
-			else if ((int)op >= MINT_ICALLSIG_444444_V && (int)op <= MINT_ICALLSIG_888888_8)
-			{
-				int returnType = (int)op % 10;
-				MH_LOG("Handling MINT_ICALLSIG_44444_V to MINT_ICALLSIG_88888_8");
-				switch (returnType) {
-					case 0: {
-						typedef void (*T)(I8,I8,I8,I8,I8,I8);
-						T func = (T)ptr;		
-						func (sp [0].data.p, sp [1].data.p, sp [2].data.p, sp [3].data.p, sp [4].data.p, sp [5].data.p);
-					}
-					case 4: {
-						typedef I4 (*T)(I8,I8,I8,I8,I8,I8);
-						T func = (T)ptr;
-						ret_sp->data.p = (I8)func (sp [0].data.p, sp [1].data.p, sp [2].data.p, sp [3].data.p, sp [4].data.p, sp [5].data.p);
-					}
-					case 8: {
-						typedef I8 (*T)(I8,I8,I8,I8,I8,I8);
-						T func = (T)ptr;
-						ret_sp->data.p = (I8)func (sp [0].data.p, sp [1].data.p, sp [2].data.p, sp [3].data.p, sp [4].data.p, sp [5].data.p);
-					}
-				}
-			}
-			else
-			{
-				g_assert_not_reached ();
-			}
-		}
-	}
-				
-	if (save_last_error)
-	{
-		MH_LOG("Setting last error");
-		mono_marshal_set_last_error ();
-	}
-
-	/* convert the native representation to the stackval representation */
 	if (sig)
 	{
 		MH_LOG("Setting stackval from data");
-		stackval_from_data (sig->ret, ret_sp, (char*) &ret_sp->data.p, sig->pinvoke && !sig->marshalling_disabled);
+		stackval_from_data(sig->ret, ret_sp, (char*)&ret_sp->data.p, sig->pinvoke && !sig->marshalling_disabled);
 		MH_LOG("Set stackval from data");
 	}
 	else
 		MH_LOG("Not trying to set stackval from data - no sig");
 }
-
-/* MONO_NO_OPTIMIZATION is needed due to usage of INTERP_PUSH_LMF_WITH_CTX. */
-#ifdef _MSC_VER
-#pragma optimize ("", off)
-#endif
 // Do not inline in case order of frame addresses matters, and maybe other reasons.
 static MONO_NO_OPTIMIZATION MONO_NEVER_INLINE gpointer
 do_icall_wrapper (InterpFrame *frame, MonoMethodSignature *sig, MintICallSig op, stackval *ret_sp, stackval *sp, gpointer ptr, gboolean save_last_error, gboolean *gc_transitions)
@@ -2665,10 +2416,12 @@ do_icall_wrapper (InterpFrame *frame, MonoMethodSignature *sig, MintICallSig op,
 	if (*gc_transitions) {
 		MONO_ENTER_GC_SAFE;
 		do_icall (sig, op, ret_sp, sp, ptr, save_last_error);
+		update_stackval(sig, ret_sp);
 		MONO_EXIT_GC_SAFE;
 		*gc_transitions = FALSE;
 	} else {
-		do_icall (sig, op, ret_sp, sp, ptr, save_last_error);
+		do_icall (sig, op, ret_sp, sp, ptr, save_last_error);		
+		update_stackval(sig, ret_sp);
 	}
 
 	interp_pop_lmf (&ext);
