@@ -368,7 +368,7 @@ int mono_interp_traceopt = 0;
 #else
 
 #define MINT_IN_SWITCH(op) COUNT_OP(op); switch (opcode = (MintOpcode)(op))
-#define MINT_IN_CASE(x) case x: MH_LOG("\t mint case: %d", x);
+#define MINT_IN_CASE(x) case x: /*MH_LOG("\t mint case: %d", x);*/
 #define MINT_IN_BREAK break
 
 #endif
@@ -814,55 +814,103 @@ get_virtual_method_fast (InterpMethod *imethod, MonoVTable *vtable, int offset)
 		return target_imethod;
 	}
 }
+static void log_monotype(MonoType* type)
+{
+switch (type->type) 
+{
+	case MONO_TYPE_VOID: MH_LOG("MONO_TYPE_VOID");break;	
+	case MONO_TYPE_I1: MH_LOG("MONO_TYPE_I");break;
+	case MONO_TYPE_U1: MH_LOG("MONO_TYPE_U");break;
+	case MONO_TYPE_BOOLEAN: MH_LOG("MONO_TYPE_BOOLEAN");break;
+	case MONO_TYPE_I2: MH_LOG("MONO_TYPE_I");break;	
+	case MONO_TYPE_U2: MH_LOG("MONO_TYPE_U");break;
+	case MONO_TYPE_CHAR: MH_LOG("MONO_TYPE_CHAR");break;
+	case MONO_TYPE_I4: MH_LOG("MONO_TYPEI4");break;
+	case MONO_TYPE_U: MH_LOG("MONO_TYPE_U");break;
+	case MONO_TYPE_I: MH_LOG("MONO_TYPE_I");break;
+	case MONO_TYPE_PTR: MH_LOG("MONO_TYPE_PTR");break;
+	case MONO_TYPE_FNPTR: MH_LOG("MONO_TYPE_FNPTR");break;
+	case MONO_TYPE_U4: MH_LOG("MONO_TYPE_U4");break;
+	case MONO_TYPE_R4: MH_LOG("MONO_TYPE_R");break;
+	case MONO_TYPE_I8: MH_LOG("MONO_TYPE_I");break;
+	case MONO_TYPE_U8: MH_LOG("MONO_TYPE_U8");break;
+	case MONO_TYPE_R8: MH_LOG("MONO_TYPE_R8");break;
+	case MONO_TYPE_STRING: MH_LOG("MONO_TYPE_STRING");break;
+	case MONO_TYPE_SZARRAY: MH_LOG("MONO_TYPE_SZRRAY");break;
+	case MONO_TYPE_CLASS: MH_LOG("MONO_TYPE_CLASS");break;
+	case MONO_TYPE_OBJECT: MH_LOG("MONO_TYPE_OBJECT");break;
+	case MONO_TYPE_ARRAY: MH_LOG("MONO_TYPE_ARRAY");break;
+	case MONO_TYPE_VALUETYPE: MH_LOG("MONO_TYPE_VALUETYPE");break;
+	case MONO_TYPE_GENERICINST: MH_LOG("MONO_TYPE_GENERICINST");break; 
+	default:
+		MH_LOG ("got unrecognised type 0x%02x", type->type);
+	}
+}
 
-void 
+static void 
 stackval_from_data (MonoType *type, stackval *result, const void *data, gboolean pinvoke)
 {
+	log_monotype(type);
+	if(pinvoke)
+		MH_LOG("pinvoke is TRUE");
 	if (m_type_is_byref (type)) {
+		MH_LOG("m_type_is_byref");
 		result->data.p = *(gpointer*)data;
 		return;
 	}
 	switch (type->type) {
 	case MONO_TYPE_VOID:
+		MH_LOG("void");
 		break;;
 	case MONO_TYPE_I1:
 		result->data.i = *(gint8*)data;
+		MH_LOG("set int %d", result->data.i);
 		break;
 	case MONO_TYPE_U1:
 	case MONO_TYPE_BOOLEAN:
 		result->data.i = *(guint8*)data;
+		MH_LOG("set int %d", result->data.i);
 		break;
 	case MONO_TYPE_I2:
 		result->data.i = *(gint16*)data;
+		MH_LOG("set int %d", result->data.i);
 		break;
 	case MONO_TYPE_U2:
 	case MONO_TYPE_CHAR:
 		result->data.i = *(guint16*)data;
+		MH_LOG("set int %d", result->data.i);
 		break;
 	case MONO_TYPE_I4:
 		result->data.i = *(gint32*)data;
+		MH_LOG("set int %d", result->data.i);
 		break;
 	case MONO_TYPE_U:
 	case MONO_TYPE_I:
 		result->data.nati = *(mono_i*)data;
+		MH_LOG("set int %" PRIu64, result->data.nati);
 		break;
 	case MONO_TYPE_PTR:
 	case MONO_TYPE_FNPTR:
 		result->data.p = *(gpointer*)data;
+		MH_LOG("set ptr %p", result->data.p);
 		break;
 	case MONO_TYPE_U4:
 		result->data.i = *(guint32*)data;
+		MH_LOG("set int %d", result->data.i);
 		break;
 	case MONO_TYPE_R4:
 		/* memmove handles unaligned case */
 		memmove (&result->data.f_r4, data, sizeof (float));
+		MH_LOG("set r4 %f", result->data.f_r4);
 		break;
 	case MONO_TYPE_I8:
 	case MONO_TYPE_U8:
 		memmove (&result->data.l, data, sizeof (gint64));
+		MH_LOG("set IU I8 %" PRId64, result->data.l);
 		break;
 	case MONO_TYPE_R8:
 		memmove (&result->data.f, data, sizeof (double));
+		MH_LOG("set r8 %f", result->data.f);
 		break;
 	case MONO_TYPE_STRING:
 	case MONO_TYPE_SZARRAY:
@@ -870,8 +918,10 @@ stackval_from_data (MonoType *type, stackval *result, const void *data, gboolean
 	case MONO_TYPE_OBJECT:
 	case MONO_TYPE_ARRAY:
 		result->data.p = *(gpointer*)data;
+		MH_LOG("set ptr %p", result->data.p);
 		break;
 	case MONO_TYPE_VALUETYPE:
+		MH_LOG("setting value type");
 		if (m_class_is_enumtype (m_type_data_get_klass_unchecked (type))) {
 			stackval_from_data (mono_class_enum_basetype_internal (m_type_data_get_klass_unchecked (type)), result, data, pinvoke);
 			break;
@@ -885,6 +935,7 @@ stackval_from_data (MonoType *type, stackval *result, const void *data, gboolean
 			break;
 		}
 	case MONO_TYPE_GENERICINST: {
+		MH_LOG("setting value MONO_TYPE_GENERICINST");
 		if (mono_type_generic_inst_is_valuetype (type)) {
 			MonoClass *klass = mono_class_from_mono_type_internal (type);
 			int size;
@@ -899,6 +950,7 @@ stackval_from_data (MonoType *type, stackval *result, const void *data, gboolean
 		break;
 	}
 	default:
+		MH_LOG("Got unexpected type");
 		g_error ("got type 0x%02x", type->type);
 	}
 }
@@ -906,9 +958,12 @@ stackval_from_data (MonoType *type, stackval *result, const void *data, gboolean
 static int
 stackval_to_data (MonoType *type, stackval *val, void *data, gboolean pinvoke)
 {
+	MH_LOG("Converting data. pinvoke is %s:", pinvoke? "true" : "false");
+	log_monotype(type);
 	if (m_type_is_byref (type)) {
 		gpointer *p = (gpointer*)data;
 		*p = val->data.p;
+		MH_LOG("BYREF, assigning pointer");
 		return MINT_STACK_SLOT_SIZE;
 	}
 	/* printf ("TODAT0 %p\n", data); */
@@ -918,6 +973,7 @@ stackval_to_data (MonoType *type, stackval *val, void *data, gboolean pinvoke)
 	case MONO_TYPE_U1: {
 		guint8 *p = (guint8*)data;
 		*p = GINT32_TO_UINT8 (val->data.i);
+		MH_LOG("setting p to %d", val->data.i);
 		return MINT_STACK_SLOT_SIZE;
 	}
 	case MONO_TYPE_I2:
@@ -925,6 +981,7 @@ stackval_to_data (MonoType *type, stackval *val, void *data, gboolean pinvoke)
 	case MONO_TYPE_CHAR: {
 		guint16 *p = (guint16*)data;
 		*p = GINT32_TO_UINT16 (val->data.i);
+		MH_LOG("setting p to %d", val->data.i);
 		return MINT_STACK_SLOT_SIZE;
 	}
 	case MONO_TYPE_I: {
@@ -934,31 +991,37 @@ stackval_to_data (MonoType *type, stackval *val, void *data, gboolean pinvoke)
 		   a native int - both by csc and mcs). Not sure what to do about sign extension
 		   as it is outside the spec... doing the obvious */
 		*p = (mono_i)val->data.nati;
+		MH_LOG("setting p to %" PRIu64, val->data.nati);
 		return MINT_STACK_SLOT_SIZE;
 	}
 	case MONO_TYPE_U: {
 		mono_u *p = (mono_u*)data;
 		/* see above. */
 		*p = (mono_u)val->data.nati;
+		MH_LOG("setting p to %" PRIu64, val->data.nati);
 		return MINT_STACK_SLOT_SIZE;
 	}
 	case MONO_TYPE_I4:
 	case MONO_TYPE_U4: {
 		gint32 *p = (gint32*)data;
 		*p = val->data.i;
+		MH_LOG("setting p to %d", val->data.i);
 		return MINT_STACK_SLOT_SIZE;
 	}
 	case MONO_TYPE_I8:
 	case MONO_TYPE_U8: {
+		MH_LOG("copying I8 or U8 %" PRId64 ": (%d) bytes", val->data.l, sizeof (gint64));
 		memmove (data, &val->data.l, sizeof (gint64));
 		return MINT_STACK_SLOT_SIZE;
 	}
 	case MONO_TYPE_R4: {
 		/* memmove handles unaligned case */
+		MH_LOG("copying R4 %f: (%d) bytes", val->data.f_r4, sizeof (float));
 		memmove (data, &val->data.f_r4, sizeof (float));
 		return MINT_STACK_SLOT_SIZE;
 	}
 	case MONO_TYPE_R8: {
+		MH_LOG("copying R4 %f: (%d) bytes", val->data.f, sizeof (float));
 		memmove (data, &val->data.f, sizeof (double));
 		return MINT_STACK_SLOT_SIZE;
 	}
@@ -968,6 +1031,7 @@ stackval_to_data (MonoType *type, stackval *val, void *data, gboolean pinvoke)
 	case MONO_TYPE_OBJECT:
 	case MONO_TYPE_ARRAY: {
 		gpointer *p = (gpointer *) data;
+		MH_LOG("assigning pointer to data");
 		mono_gc_wbarrier_generic_store_internal (p, val->data.o);
 		return MINT_STACK_SLOT_SIZE;
 	}
@@ -975,9 +1039,11 @@ stackval_to_data (MonoType *type, stackval *val, void *data, gboolean pinvoke)
 	case MONO_TYPE_FNPTR: {
 		gpointer *p = (gpointer *) data;
 		*p = val->data.p;
+		MH_LOG("assigning pointer to data");
 		return MINT_STACK_SLOT_SIZE;
 	}
 	case MONO_TYPE_VALUETYPE:
+		MH_LOG("assigning pointer: handling value type");
 		if (m_class_is_enumtype (m_type_data_get_klass_unchecked (type))) {
 			return stackval_to_data (mono_class_enum_basetype_internal (m_type_data_get_klass_unchecked (type)), val, data, pinvoke);
 		} else {
@@ -993,7 +1059,7 @@ stackval_to_data (MonoType *type, stackval *val, void *data, gboolean pinvoke)
 		}
 	case MONO_TYPE_GENERICINST: {
 		MonoClass *container_class = m_type_data_get_generic_class_unchecked (type)->container_class;
-
+		MH_LOG("assigning pointer, handling MONO_TYPE_GENERICINST");
 		if (m_class_is_valuetype (container_class) && !m_class_is_enumtype (container_class)) {
 			MonoClass *klass = mono_class_from_mono_type_internal (type);
 			int size;
@@ -1009,6 +1075,7 @@ stackval_to_data (MonoType *type, stackval *val, void *data, gboolean pinvoke)
 		return stackval_to_data (m_class_get_byval_arg (m_type_data_get_generic_class_unchecked (type)->container_class), val, data, pinvoke);
 	}
 	default:
+		MH_LOG("*** unexpected type");
 		g_error ("got type %x", type->type);
 	}
 }
@@ -3991,8 +4058,7 @@ main_loop:
 	/*
 	 * using while (ip < end) may result in a 15% performance drop,
 	 * but it may be useful for debug
-	 */
-	MH_LOG("Entering main loop");
+	 */	
 	while (1) {
 #if PROFILE_INTERP
 		frame->imethod->opcounts++;
@@ -4274,9 +4340,8 @@ main_loop:
 			stackval *args = (stackval*)(locals + ip [3]);			
 			//MH_PRINT_MONO_SIG(csignature);
 			/* for calls, have ip pointing at the start of next instruction */
-			frame->state.ip = ip + 7;
-			MH_LOG("About do do_icall_wrapper");					
-			MH_LOG("Imethod: %s | full: %s", frame->imethod->method->name, mono_method_get_full_name(frame->imethod->method));						
+			frame->state.ip = ip + 7;			
+			MH_LOG("Wrapped call to Imethod: %s | full: %s", frame->imethod->method->name, mono_method_get_full_name(frame->imethod->method));						
 			/*EM_ASM(debugger;);*/
 			do_icall_wrapper (frame, csignature, icall_sig, ret, args, target_ip, save_last_error, &gc_transitions);
 			MH_LOG("Finished do_icall_wrapper");
@@ -4384,7 +4449,7 @@ jit_call:
 		}
 
 		MINT_IN_CASE(MINT_CALL) {
-			MH_LOG(" = case MINT_CALL: %s", mono_method_get_full_name(frame->imethod->method));
+			MH_LOG("case MINT_CALL: %s", mono_method_get_full_name(frame->imethod->method));
 
 			cmethod = (InterpMethod*)frame->imethod->data_items [ip [3]];
 			return_offset = ip [1];

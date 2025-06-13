@@ -2858,10 +2858,6 @@ static MintICallSig
 interp_get_icall_sig (MonoMethodSignature *sig)
 {
 	MintICallSig op = MINT_ICALLSIG_MAX;	
-	#ifdef HOST_WASM
-	MH_LOG("Getting call signature - stack trace to follow");
-	mono_wasm_print_stack_trace ();
-	#endif
 	InterpInternalSignature internSig;
 
 	// first the return type	
@@ -2887,7 +2883,7 @@ interp_get_icall_sig (MonoMethodSignature *sig)
 	}		
 	uint16_t code = encode_signature(internSig.params, internSig.paramCount, internSig.returnType);
 	op = (MintICallSig)code;	
-	MH_LOG("\tEnum calculation: return type gives %d. Param count is %d", code, sig->param_count);
+	MH_LOG("\tEnum calculation: return type gives %d. Param count is %d. returning %d", internSig.returnType, sig->param_count, code);
 	MH_LOG("Returning: %d", (int)op);
 	return op;
 }

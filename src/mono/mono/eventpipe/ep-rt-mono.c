@@ -16,6 +16,8 @@
 #include <runtime_version.h>
 #include <clretwallmain.h>
 
+#include <mono/metadata/mh_log.h>
+
 extern void InitProvidersAndEvents (void);
 
 // EventPipe init state.
@@ -821,11 +823,13 @@ ep_rt_mono_init_finish (void)
 
 	// Managed init of diagnostics classes, like registration of RuntimeEventSource (if available).
 	ERROR_DECL (error);
-
+	MH_LOG("## Calling mono_class_from_name_checked to get event source");
 	MonoClass *event_source = mono_class_from_name_checked (mono_get_corlib (), "System.Diagnostics.Tracing", "EventSource", error);
 	if (is_ok (error) && event_source) {
+		MH_LOG("### Got event source, calling mono_class_get_method_from_name_checked to get InitializeDefaultEventSources");
 		MonoMethod *init = mono_class_get_method_from_name_checked (event_source, "InitializeDefaultEventSources", -1, 0, error);
 		if (is_ok (error) && init) {
+			MH_LOG("#### Calling mono_runtime_try_invoke_handle %s", init->name);
 			mono_runtime_try_invoke_handle (init, NULL_HANDLE, NULL, error);
 		}
 	}

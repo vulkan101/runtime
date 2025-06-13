@@ -98,6 +98,7 @@
 #include "mono/utils/mono-threads-coop.h"
 #include "mono/metadata/icall-signatures.h"
 #include "mono/utils/mono-signal-handler.h"
+#include <mono/metadata/mh_log.h>
 
 #if _MSC_VER
 #pragma warning(disable:4047) // FIXME differs in levels of indirection
@@ -1789,7 +1790,8 @@ typedef enum {
 MonoBoolean
 ves_icall_RuntimeTypeHandle_type_is_assignable_from (MonoQCallTypeHandle type_handle, MonoQCallTypeHandle c_handle, MonoError *error)
 {
-	MonoType *type = type_handle.type;
+	MH_LOG("ves_icall_RuntimeTypeHandle_type_is_assignable_from: type_handle.type->type: %d, c_handle.type->type: %d", type_handle.type->type, c_handle.type->type);
+	MonoType *type = type_handle.type;	
 	MonoClass *klass = mono_class_from_mono_type_internal (type);
 	MonoType *ctype = c_handle.type;
 	MonoClass *klassc = mono_class_from_mono_type_internal (ctype);

@@ -34,7 +34,7 @@
 #include <mono/metadata/class-private-definition.h>
 #undef REALLY_INCLUDE_CLASS_DEF
 #endif
-
+#include <mono/metadata/mh_log.h>
 #define FEATURE_COVARIANT_RETURNS
 
 gboolean mono_print_vtable = FALSE;
@@ -472,7 +472,7 @@ mono_class_create_from_typedef (MonoImage *image, guint32 type_token, MonoError 
 	guint32 nesting_tokeen;
 
 	error_init (error);
-
+	MH_LOG("MonoImage name: %s, filename: %s, assembly name: %s, type_token: %d", image->name, image->filename, image->assembly_name, type_token);
 	/* FIXME: metadata-update - this function needs extensive work */
 	if (mono_metadata_token_table (type_token) != MONO_TABLE_TYPEDEF || mono_metadata_table_bounds_check (image, MONO_TABLE_TYPEDEF, tidx)) {
 		mono_error_set_bad_image (error, image, "Invalid typedef token %x", type_token);

@@ -50,6 +50,9 @@
 #include <mono/utils/unlocked.h>
 #include <mono/utils/bsearch.h>
 #include <mono/utils/checked-build.h>
+
+#include <mono/metadata/mh_log.h>
+#include <mono/mini/mini-wasm.h>
 // for dn_simdhash_ght_t
 #include "../native/containers/dn-simdhash-specializations.h"
 
@@ -2261,11 +2264,11 @@ mono_class_from_mono_type (MonoType *type)
 	MONO_EXIT_GC_UNSAFE;
 	return result;
 }
-
+/* test comment */
 MonoClass *
 mono_class_from_mono_type_internal (MonoType *type)
-{
-
+{	
+	MH_LOG("mono_class_from_mono_type_internal: type: %d", type->type);
 #define CASE_KLASS_OR_DEFAULT_FOR_TYPE(enum_value, default_expr) \
 	case enum_value: \
 		return m_type_data_get_klass_unchecked (type) ? m_type_data_get_klass_unchecked (type) : default_expr;
@@ -3901,6 +3904,9 @@ mono_byref_type_is_assignable_from (MonoType *type, MonoType *ctype, gboolean si
 {
 	g_assert (m_type_is_byref (type));
 	g_assert (m_type_is_byref (ctype));
+	{
+		MH_LOG("Incoming type: %d (%x)", type->type, type->type);
+	}
 	MonoType *t = mono_type_get_underlying_type_ignore_byref (type);
 	MonoType *ot = mono_type_get_underlying_type_ignore_byref (ctype);
 
