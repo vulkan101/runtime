@@ -1,7 +1,7 @@
 #include "interp-icalls.h"
 #include "interp.h"
 typedef gpointer I8;
-typedef uint32_t I4;
+typedef int I4;
 void do_icall(MonoMethodSignature* sig, MintICallSig op, stackval* ret_sp, stackval* sp, gpointer ptr, gboolean save_last_error)
 {
 	if (save_last_error)
@@ -107,7 +107,9 @@ void do_icall(MonoMethodSignature* sig, MintICallSig op, stackval* ret_sp, stack
 	case MINT_ICALLSIG_88_4: {
 		typedef I4(*T)(I8, I8);
 		T func = (T)ptr;
-		ret_sp->data.p = (I8)func(sp[0].data.p, sp[1].data.p);
+		I4 val = func(sp[0].data.p, sp[1].data.p);
+		ret_sp->data.i = val;
+		ret_sp->data.p = (I8)(intptr_t)val;
 		break;
 	};
 	case MINT_ICALLSIG_44_8: {
