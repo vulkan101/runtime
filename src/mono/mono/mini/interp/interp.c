@@ -277,7 +277,7 @@ typedef void (*ICallMethod) (InterpFrame *frame);
 
 static MonoNativeTlsKey thread_context_id;
 
-#define DEBUG_INTERP 0
+#define DEBUG_INTERP 1
 #define COUNT_OPS 0
 
 #if DEBUG_INTERP
@@ -1010,18 +1010,18 @@ stackval_to_data (MonoType *type, stackval *val, void *data, gboolean pinvoke)
 	}
 	case MONO_TYPE_I8:
 	case MONO_TYPE_U8: {
-		MH_LOG("copying I8 or U8 %" PRId64 ": (%d) bytes", val->data.l, sizeof (gint64));
+		MH_LOG("copying I8 or U8 %lu" PRId64 ": (%d) bytes", val->data.l, sizeof (gint64));
 		memmove (data, &val->data.l, sizeof (gint64));
 		return MINT_STACK_SLOT_SIZE;
 	}
 	case MONO_TYPE_R4: {
 		/* memmove handles unaligned case */
-		MH_LOG("copying R4 %f: (%d) bytes", val->data.f_r4, sizeof (float));
+		MH_LOG("copying R4 %f: (%lu) bytes", val->data.f_r4, sizeof (float));
 		memmove (data, &val->data.f_r4, sizeof (float));
 		return MINT_STACK_SLOT_SIZE;
 	}
 	case MONO_TYPE_R8: {
-		MH_LOG("copying R4 %f: (%d) bytes", val->data.f, sizeof (float));
+		MH_LOG("copying R4 %f: (%lu) bytes", val->data.f, sizeof (float));
 		memmove (data, &val->data.f, sizeof (double));
 		return MINT_STACK_SLOT_SIZE;
 	}
@@ -4341,10 +4341,13 @@ main_loop:
 			//MH_PRINT_MONO_SIG(csignature);
 			/* for calls, have ip pointing at the start of next instruction */
 			frame->state.ip = ip + 7;			
+			MH_LOG_INDENT();
 			MH_LOG("Wrapped call to Imethod: %s | full: %s", frame->imethod->method->name, mono_method_get_full_name(frame->imethod->method));						
 			/*EM_ASM(debugger;);*/
 			do_icall_wrapper (frame, csignature, icall_sig, ret, args, target_ip, save_last_error, &gc_transitions);
 			MH_LOG("Finished do_icall_wrapper");
+			MH_LOG_UNINDENT();
+
 			EXCEPTION_CHECKPOINT;
 			CHECK_RESUME_STATE (context);
 			ip += 7;
@@ -8090,7 +8093,7 @@ MINT_IN_CASE(MINT_BRTRUE_I8_SP) ZEROP_SP(gint64, !=); MINT_IN_BREAK;
 
 		MINT_IN_CASE(MINT_TIER_ENTER_JITERPRETER) {
 			// The fn ptr is encoded in a guint16 relative to the index of the first trace fn ptr, so compute the actual ptr
-			JiterpreterThunk thunk = (JiterpreterThunk)(void *)(((JiterpreterOpcode *)ip)->relative_fn_ptr + mono_jiterp_first_trace_fn_ptr);
+			JiterpreterThunk thunk = (JiterpreterThunk)(void *)(((JiterpreterOpcode *)ip)->relative_fn_ptr + (uintptr_t)mono_jiterp_first_trace_fn_ptr);
 			ptrdiff_t offset = thunk (frame, locals, NULL, ip);
 			ip = (guint16*) (((guint8*)ip) + offset);
 			MINT_IN_BREAK;
