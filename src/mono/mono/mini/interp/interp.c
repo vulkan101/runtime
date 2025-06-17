@@ -277,7 +277,7 @@ typedef void (*ICallMethod) (InterpFrame *frame);
 
 static MonoNativeTlsKey thread_context_id;
 
-#define DEBUG_INTERP 1
+#define DEBUG_INTERP 0
 #define COUNT_OPS 0
 
 #if DEBUG_INTERP
