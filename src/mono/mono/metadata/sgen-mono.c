@@ -38,6 +38,7 @@
 #include "metadata/w32handle.h"
 #include "icall-signatures.h"
 #include "mono/utils/mono-tls-inline.h"
+#include <mono/metadata/mh_log.h>
 
 #if _MSC_VER
 #pragma warning(disable:4312) // FIXME pointer cast to different size
@@ -2544,6 +2545,7 @@ mono_gchandle_free_internal (MonoGCHandle gchandle)
 MonoObject*
 mono_gchandle_get_target_internal (MonoGCHandle gchandle)
 {
+	MH_LOGV (MH_LVL_VERBOSE, "gchandle: %p", gchandle);
 	return sgen_gchandle_get_target (MONO_GC_HANDLE_TO_UINT (gchandle));
 }
 

@@ -11,12 +11,19 @@
 #include <mono/metadata/mempool.h>
 #include <mono/metadata/metadata-internals.h>
 #include <mono/metadata/property-bag.h>
+#include <mono/metadata/mh_log.h>
+
 #include "mono/utils/mono-compiler.h"
 #include "mono/utils/mono-error.h"
 #include "mono/sgen/gc-internal-agnostic.h"
 #include "mono/utils/mono-error-internals.h"
 #include "mono/utils/mono-memory-model.h"
 #include "mono/utils/mono-compiler.h"
+
+#ifdef HOST_WASM
+
+#include "mono/mini/mini-wasm.h"
+#endif
 
 #define MONO_CLASS_IS_ARRAY(c) (m_class_get_rank (c))
 
@@ -609,6 +616,14 @@ mono_class_setup_supertypes (MonoClass *klass);
 static inline gboolean
 mono_class_has_parent_fast (MonoClass *klass, MonoClass *parent)
 {
+	MH_LOGV(MH_LVL_TRACE, "Getting idepth of klass %p, and parent %p\n", klass, parent); 
+	if ((void*)klass > (void*)0x7FFFFFF)
+	{
+		MH_LOGV(MH_LVL_TRACE, "Unexpectedly large klass pointer found: %p\n", klass); 
+	}
+	MH_LOGV(MH_LVL_TRACE, "\tParent depth is: %d\n", m_class_get_idepth (parent)); 
+	MH_LOGV(MH_LVL_TRACE, "\tKlass depth is: %d\n", m_class_get_idepth (klass)); 
+
 	return (m_class_get_idepth (klass) >= m_class_get_idepth (parent)) && (m_class_get_supertypes (klass) [m_class_get_idepth (parent) - 1] == parent);
 }
 
@@ -620,7 +635,7 @@ mono_class_has_parent (MonoClass *klass, MonoClass *parent)
 
 	if (G_UNLIKELY (!m_class_get_supertypes (parent)))
 		mono_class_setup_supertypes (parent);
-
+	MH_LOGV(MH_LVL_TRACE, "Checking if klass %p has parent %p\n", klass, parent);
 	return mono_class_has_parent_fast (klass, parent);
 }
 

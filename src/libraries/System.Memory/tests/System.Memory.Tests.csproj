@@ -6,6 +6,18 @@
     <TargetFramework>$(NetCoreAppCurrent)</TargetFramework>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <WasmXHarnessMonoArgs>--setenv=MH_LOG_VERBOSITY=2 --setenv=MONO_GC_DEBUG=9:gc_log.txt</WasmXHarnessMonoArgs>    
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>    
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <Content Include="**\*.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  
   <ItemGroup>
     <RdXmlFile Include="default.rd.xml" />
   </ItemGroup>

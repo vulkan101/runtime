@@ -196,6 +196,7 @@
 #include <mono/utils/memcheck.h>
 #include <mono/utils/mono-mmap-internals.h>
 #include <mono/utils/unlocked.h>
+#include <mono/metadata/mh_log.h>
 
 #undef pthread_create
 #undef pthread_join
@@ -3202,6 +3203,7 @@ sgen_gc_collect (int generation)
 	LOCK_GC;
 	if (generation > 1)
 		generation = 1;
+	MH_LOGV(MH_LVL_VERBOSE, "Collecting generation %d", generation);
 	sgen_perform_collection (0, generation, "user request", TRUE, TRUE);
 	/* Make sure we don't exceed heap size allowance by promoting */
 	if (generation == GENERATION_NURSERY && sgen_need_major_collection (0, &forced))
@@ -3709,12 +3711,13 @@ sgen_gc_init (void)
 
 	sgen_pinning_init ();
 	sgen_cement_init (cement_enabled);
-
+	MH_LOGV(MH_LVL_INFO, "Looking for MONO_GC_DEBUG:");
 	if ((env = g_getenv (MONO_GC_DEBUG_NAME)) || gc_debug_options) {
+		MH_LOGV(MH_LVL_INFO, "Got MONO_GC_DEBUG: %s", env);
 		debug_opts = g_strdup_printf ("%s,%s", gc_debug_options ? gc_debug_options  : "", env ? env : "");
 		g_free (env);
 	}
-
+	MH_LOGV(MH_LVL_INFO, "Got debug_opts: %s", debug_opts);
 	if (debug_opts) {
 		gboolean usage_printed = FALSE;
 
@@ -3725,14 +3728,26 @@ sgen_gc_init (void)
 				continue;
 			if (opt [0] >= '0' && opt [0] <= '9') {
 				sgen_gc_debug_level = atoi (opt);
+				MH_LOGV(MH_LVL_INFO, "Set sgen_gc_debug_level: %d", sgen_gc_debug_level);
 				opt++;
 				if (opt [0] == ':')
 					opt++;
 				if (opt [0]) {
+					bool useStdOut = false;
 					char *rf = g_strdup_printf ("%s.%d", opt, mono_process_current_pid ());
+					MH_LOGV(MH_LVL_INFO, "Opening log file: %s", rf);
 					sgen_gc_debug_file = fopen (rf, "wb");
-					if (!sgen_gc_debug_file)
+					if (useStdOut)
+					{
+						MH_LOGV(MH_LVL_INFO, "Using stdout");
+						sgen_gc_debug_file = stdout;
+					}
+					else if (!sgen_gc_debug_file)
+					{
+						MH_LOGV(MH_LVL_INFO, "Couldn't open file. Using stderr");
 						sgen_gc_debug_file = stderr;
+					}else
+							MH_LOGV(MH_LVL_INFO, "Opened log file: %s", rf);
 					g_free (rf);
 				}
 			} else if (!strcmp (opt, "print-allowance")) {

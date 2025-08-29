@@ -2286,7 +2286,7 @@ do_icall_wrapper (InterpFrame *frame, MonoMethodSignature *sig, MintICallSig op,
 	INTERP_PUSH_LMF_WITH_CTX (frame, ext, exit_icall);	
 	if(frame->imethod && frame->imethod->method && frame->imethod->method->name)
 	{
-		MH_LOGV(MH_LVL_DEBUG, "calling do_icall for %s : %s", frame->imethod->method->name, mono_method_full_name (frame->imethod->method, TRUE));
+		MH_LOGV(MH_LVL_VERBOSE, "calling do_icall for %s : %s", frame->imethod->method->name, mono_method_full_name (frame->imethod->method, TRUE));
 	}
 	else
 	{
@@ -3486,6 +3486,11 @@ mono_interp_isinst (MonoObject* object, MonoClass* klass)
 	ERROR_DECL (error);
 	gboolean isinst;
 	MonoClass *obj_class = mono_object_class (object);
+	if (!(object && object->vtable && (object->vtable->initialized == 1)))
+	{
+		MH_LOGV(MH_LVL_DEBUG, "Invalid data. klass: %p, object: %p, object->vtable: %p, obj_class: %p, object->vtable->initialized %d", klass, object, object->vtable, obj_class, object->vtable->initialized);
+		//assert(object && object->vtable && (object->vtable->initialized == 1));
+	}		
 	mono_class_is_assignable_from_checked (klass, obj_class, &isinst, error);
 	mono_error_cleanup (error); // FIXME: do not swallow the error
 	return isinst;
@@ -3888,7 +3893,8 @@ main_loop:
 #endif
 		MintOpcode opcode;
 		DUMP_INSTR();
-		MINT_IN_SWITCH (*ip) {
+		
+		MINT_IN_SWITCH (*ip) {			
 		MINT_IN_CASE(MINT_INITLOCAL)
 		MINT_IN_CASE(MINT_INITLOCALS)
 			memset (locals + ip [1], 0, ip [2]);
@@ -6033,8 +6039,17 @@ MINT_IN_CASE(MINT_BRTRUE_I8_SP) ZEROP_SP(gint64, !=); MINT_IN_BREAK;
 			MonoObject *o = LOCAL_VAR (ip [2], MonoObject*);
 			if (o) {
 				MonoClass *c = (MonoClass*)frame->imethod->data_items [ip [3]];
-				gboolean isinst = mono_class_has_parent_fast (o->vtable->klass, c);
 
+				MH_LOGV(MH_LVL_TRACE, "Checking if klass %p has parent %p\n", o->vtable->klass, c);
+				if ((void*)o->vtable->klass > (void*)0x7FFFFFF)
+				{
+					log_mint_type(*ip);
+					MH_LOGV(MH_LVL_DEBUG, "Unexpectedly large klass pointer found: printing stack trace. Vtable is %p:\n", o->vtable); 					
+					mono_wasm_print_stack_trace();
+				}
+
+				gboolean isinst = (o->vtable) ? mono_class_has_parent_fast (o->vtable->klass, c) : 0;
+				
 				if (!isinst) {
 					gboolean const isinst_instr = *ip == MINT_ISINST_COMMON;
 					if (isinst_instr)
@@ -6042,7 +6057,13 @@ MINT_IN_CASE(MINT_BRTRUE_I8_SP) ZEROP_SP(gint64, !=); MINT_IN_BREAK;
 					else
 						THROW_EX (interp_get_exception_invalid_cast (frame, ip), ip);
 				} else {
-					LOCAL_VAR (ip [1], MonoObject*) = o;
+					if (o->vtable)
+						LOCAL_VAR (ip [1], MonoObject*) = o;
+					else
+					{
+						MH_LOGV(MH_LVL_DEBUG, "Object %p has null vtable\n", o);
+						LOCAL_VAR (ip [1], MonoObject*) = NULL;
+					}
 				}
 			} else {
 				LOCAL_VAR (ip [1], MonoObject*) = NULL;

@@ -246,7 +246,7 @@
 #cmakedefine DISABLE_SGEN_GC_BRIDGE 1
 
 /* Disable debug helpers in SGEN. */
-#cmakedefine DISABLE_SGEN_DEBUG_HELPERS 1
+#cmakedefine DISABLE_SGEN_DEBUG_HELPERS 0
 
 /* Disable sockets */
 #cmakedefine DISABLE_SOCKETS 1

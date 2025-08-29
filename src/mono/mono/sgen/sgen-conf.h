@@ -123,7 +123,7 @@ typedef target_mword SgenDescriptor;
  * not pay its cost on release builds.
  */
 #ifndef DISABLE_SGEN_DEBUG_HELPERS
-#define SGEN_MAX_DEBUG_LEVEL 2
+#define SGEN_MAX_DEBUG_LEVEL 9
 #else
 /* No logging support */
 #define SGEN_MAX_DEBUG_LEVEL (-1)
@@ -133,7 +133,7 @@ typedef target_mword SgenDescriptor;
  * Maximum level of asserts to enable on this build.
  * FIXME replace all magic numbers with defines.
  */
-#define SGEN_MAX_ASSERT_LEVEL 5
+#define SGEN_MAX_ASSERT_LEVEL 9
 
 
 #define GC_BITS_PER_WORD (sizeof (mword) * 8)
@@ -179,6 +179,8 @@ typedef target_mword SgenDescriptor;
  */
 #if SIZEOF_VOID_P == 8
 #define SGEN_MAX_NURSERY_SIZE ((mword)1 << 35)
+#else 
+#error "Expect 64bit pointers"
 #endif
 
 /*

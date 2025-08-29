@@ -7,9 +7,10 @@ import { ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_WORKER, Module, loaderHelpers, mono
 import { mono_wasm_wait_for_debugger } from "./debug";
 import { mono_wasm_set_main_args } from "./startup";
 import cwraps from "./cwraps";
-import { mono_log_error, mono_log_info, mono_wasm_stringify_as_error_with_stack } from "./logging";
+import { mono_log_debug, mono_log_error, mono_log_info, mono_wasm_stringify_as_error_with_stack } from "./logging";
 import { postCancelThreads, terminateAllThreads } from "./pthreads";
 import { call_entry_point } from "./managed-exports";
+
 
 /**
  * Possible signatures are described here  https://learn.microsoft.com/dotnet/csharp/fundamentals/program-structure/main-command-line
@@ -74,10 +75,65 @@ export async function mono_run_main (main_assembly_name?: string, args?: string[
     }
 }
 
+interface MinimalEmscriptenFS {
+    readdir(path: string): string[];
+    readFile(path: string, opts: { encoding: "utf8" }): string;
+    writeFile(path: string, data: string | Uint8Array, opts?: { encoding?: "utf8" }): void;
+}
 
+interface MinimalEmscriptenModule {
+    FS: MinimalEmscriptenFS;
+}
+
+function downloadFileFromEmscriptenFS (Module: any, filename: string) {
+    try {
+        // Read the file as a Uint8Array
+        const data = Module.FS.readFile(filename);
+        // Create a Blob from the data
+        const blob = new Blob([data], { type: "application/octet-stream" });
+        // Create a temporary anchor element
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        // Clean up
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 0);
+    } catch (e) {
+        mono_log_error(`Failed to download ${filename}:`, e);
+    }
+}
+
+function printGcLog (Module: MinimalEmscriptenModule) {
+    try {
+        // List all files in the root directory
+        const files = Module.FS.readdir("/");
+        // Find files matching gc_log.txt or gc_log.txt.<number>
+        const gcLogPattern = /^gc_log\.txt(\.\d+)?$/;
+        const gcLogFile = files.find(f => gcLogPattern.test(f));
+        if (gcLogFile) {
+            const contents = Module.FS.readFile(gcLogFile, { encoding: "utf8" });
+            //mono_log_debug(`=== ${gcLogFile} ===\n${contents}`);
+            const outputFile = "/gc_log_dump.txt";
+            Module.FS.writeFile(outputFile, contents, { encoding: "utf8" });
+            mono_log_info(`gc log written to ${outputFile}`);
+            downloadFileFromEmscriptenFS(Module, outputFile);
+        } else {
+            mono_log_debug("gc_log.txt (with or without suffix) not found in Emscripten FS.");
+        }
+    } catch (e: unknown) {
+        mono_log_error("Error reading gc_log.txt:", e);
+    }
+}
 
 export function nativeExit (code: number) {
     if (runtimeHelpers.runtimeReady) {
+        // try and dump a gc debug file
+        printGcLog(Module);
         runtimeHelpers.runtimeReady = false;
         if (WasmEnableThreads) {
             postCancelThreads();

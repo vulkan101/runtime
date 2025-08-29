@@ -4021,6 +4021,7 @@ mono_class_signature_is_assignable_from (MonoClass *klass, MonoClass *oklass, gb
 static gboolean
 class_is_inited_for_assignable_check (MonoClass *klass)
 {
+	MH_LOGV(MH_LVL_DEBUG, "Checking klass %p", klass);
 	/* if it's inited, it's inited */
 	if (G_LIKELY (m_class_is_inited (klass)))
 		return TRUE;

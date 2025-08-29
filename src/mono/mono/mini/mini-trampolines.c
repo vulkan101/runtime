@@ -18,6 +18,7 @@
 #include <mono/utils/mono-compiler.h>
 #include <mono/utils/mono-threads-coop.h>
 #include <mono/utils/unlocked.h>
+#include <mono/metadata/mh_log.h>
 
 #include "mini.h"
 #include "lldb.h"
@@ -571,6 +572,8 @@ common_call_trampoline (host_mgreg_t *regs, guint8 *code, MonoMethod *m, MonoVTa
 
 			if (!vtable_slot) {
 				mono_class_setup_supertypes (this_argument->vtable->klass);
+				MH_LOGV(MH_LVL_TRACE, "Getting idepth for klass member %p of %p", m, m->klass); //TODO: log name if we hit here
+				MH_LOGV(MH_LVL_TRACE, "Member %p of %p", m->klass, m); 
 				klass = m_class_get_supertypes (this_argument->vtable->klass) [m_class_get_idepth (m->klass) - 1];
 			}
 		}

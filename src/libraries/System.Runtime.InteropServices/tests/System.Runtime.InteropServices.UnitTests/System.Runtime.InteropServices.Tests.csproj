@@ -5,6 +5,11 @@
     <TestRuntime>true</TestRuntime>
     <IncludeRemoteExecutor>true</IncludeRemoteExecutor>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <WasmXHarnessMonoArgs>--setenv=MH_LOG_VERBOSITY=0</WasmXHarnessMonoArgs>
+  </PropertyGroup>
+  
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="System\DllNotFoundExceptionTests.cs" />

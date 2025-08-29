@@ -366,11 +366,13 @@ async function run() {
             }
             try {
                 const main_assembly_name = runArgs.applicationArguments[1];
+                console.log(`Running ${main_assembly_name}`);
                 const app_args = runArgs.applicationArguments.slice(2);
                 const result = await App.runtime.runMain(main_assembly_name, app_args);
                 console.log(`test-main.js exiting ${app_args.length > 1 ? main_assembly_name + " " + app_args[0] : main_assembly_name} with result ${result} and linear memory ${App.runtime.Module.HEAPU8.length} bytes`);
                 mono_exit(result);
             } catch (error) {
+                console.error("ABORT: " + error);
                 if (error.name != "ExitStatus") {
                     mono_exit(1, error);
                 }

@@ -76,7 +76,7 @@ struct _SgenClientThreadInfo {
 #include "utils/mono-time.h"
 #include "utils/mono-os-semaphore.h"
 #include "metadata/sgen-bridge-internals.h"
-
+#include <mono/metadata/mh_log.h>
 extern void mono_sgen_register_moved_object (void *obj, void *destination);
 extern void mono_sgen_gc_event_moves (void);
 extern void mono_sgen_gc_event_resize (void);
@@ -119,6 +119,7 @@ sgen_mono_array_size (GCVTable vtable, MonoArray *array, mword *bounds_size, Sge
 static mword /*__attribute__ ((__noinline__)) not sure if this hint is a good idea*/
 sgen_client_slow_object_get_size (GCVTable vtable, GCObject* o)
 {
+	SGEN_ASSERT(1, vtable, "vtable is null");
 	MonoClass *klass = ((MonoVTable*)vtable)->klass;
 
 	/*
@@ -214,7 +215,7 @@ sgen_client_object_has_critical_finalizer (GCObject *obj)
 		return FALSE;
 
 	klass = SGEN_LOAD_VTABLE (obj)->klass;
-
+	MH_LOGV(MH_LVL_TRACE, "Checking if klass %p has parent %p\n", klass, mono_defaults.critical_finalizer_object);
 	return mono_class_has_parent_fast (klass, mono_defaults.critical_finalizer_object);
 }
 

@@ -110,11 +110,21 @@ MONO_RESTORE_WARNING
 #define mono_runtime_stdout_fflush() do { } while (0)
 
 #else
-
+#undef USE_MH_GC_LOG
+#if defined (USE_MH_GC_LOG)
+#define mono_gc_printf(gc_log_file, format, ...) do {	\
+	printf("MH_NATIVE_GC_LOG: "); \
+	printf("%s : %s | %d :: ", __func__, __FILE__, __LINE__); \
+	printf(format, ##__VA_ARGS__); \
+	printf("\n"); \
+	fflush(stdout); \
+} while (0)
+#else
 #define mono_gc_printf(gc_log_file, format, ...) do {	\
 	fprintf (gc_log_file, format, ##__VA_ARGS__);	\
 	fflush (gc_log_file);	\
 } while (0)
+#endif 
 
 #define mono_runtime_printf(format, ...) fprintf (stdout, format "\n", ##__VA_ARGS__)
 #define mono_runtime_printf_err(format, ...) fprintf (stderr, format "\n", ##__VA_ARGS__)

@@ -1221,7 +1221,7 @@ case MINT_TYPE_VOID: type_str = "MINT_TYPE_VOID"; break;
 	default:
 		type_str = "UNKNOWN";
 	}
-	MH_LOG("MintType: %s (%d)", type_str, value);
+	MH_LOGV(MH_LVL_TRACE, "MintType: %s (%d)", type_str, value);
 }
 static guint32*
 initialize_arg_offsets (InterpMethod *imethod, MonoMethodSignature *csig)
@@ -2340,7 +2340,7 @@ do_icall_wrapper (InterpFrame *frame, MonoMethodSignature *sig, MintICallSig op,
 	MonoLMFExt ext;
 	INTERP_PUSH_LMF_WITH_CTX (frame, ext, exit_icall);
 	MH_LOG_INDENT();
-	MH_LOG("calling do_icall for %s : %s", frame->imethod->method->name, mono_method_full_name (frame->imethod->method, TRUE));
+	MH_LOGV(MH_LEVEL_TRACE, "calling do_icall for %s : %s", frame->imethod->method->name, mono_method_full_name (frame->imethod->method, TRUE));
 	if (*gc_transitions) {
 		MONO_ENTER_GC_SAFE;
 		do_icall (sig, op, ret_sp, sp, ptr, save_last_error);
@@ -3515,7 +3515,10 @@ mono_interp_isinst (MonoObject* object, MonoClass* klass)
 {
 	ERROR_DECL (error);
 	gboolean isinst;
-	MonoClass *obj_class = mono_object_class (object);
+	assert(object && object->vtable && (object->vtable->initialized == 1));
+	MonoClass *obj_class = mono_object_class (object);	
+	MH_LOGV(MH_LVL_DEBUG, "Calling mono_class_is_assignable_from_checked. klass: %p, object: %p, object->vtable: %p, obj_class: %p", klass, object, object->vtable, obj_class);
+	
 	mono_class_is_assignable_from_checked (klass, obj_class, &isinst, error);
 	mono_error_cleanup (error); // FIXME: do not swallow the error
 	return isinst;
@@ -6050,6 +6053,7 @@ MINT_IN_CASE(MINT_BRTRUE_I8_SP) ZEROP_SP(gint64, !=); MINT_IN_BREAK;
 			MonoObject *o = LOCAL_VAR (ip [2], MonoObject*);
 			if (o) {
 				MonoClass *c = (MonoClass*)frame->imethod->data_items [ip [3]];
+				MH_LOGV(MH_LVL_TRACE, "Checking if klass %p has parent %p\n", o->vtable->klass, c);
 				gboolean isinst = mono_class_has_parent_fast (o->vtable->klass, c);
 
 				if (!isinst) {

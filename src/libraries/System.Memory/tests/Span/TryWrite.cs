@@ -229,7 +229,7 @@ namespace System.SpanTests
         [Fact]
         public void AppendFormatted_ReferenceTypes_CreateProviderFlowed()
         {
-            var provider = new CultureInfo("en-US");
+            var provider = new CultureInfo("en-US"); // CultureInfo.InvariantCulture; 
             MemoryExtensions.TryWriteInterpolatedStringHandler handler = new MemoryExtensions.TryWriteInterpolatedStringHandler(1, 2, _largeBuffer, provider, out _);
 
             foreach (IHasToStringState tss in new IHasToStringState[] { new FormattableStringWrapper("hello"), new SpanFormattableStringWrapper("hello") })
@@ -343,7 +343,7 @@ namespace System.SpanTests
         {
             void Test<T>(T t)
             {
-                var provider = new CultureInfo("en-US");
+                var provider = new CultureInfo("en-US"); //CultureInfo.InvariantCulture; 
                 MemoryExtensions.TryWriteInterpolatedStringHandler handler = new MemoryExtensions.TryWriteInterpolatedStringHandler(1, 2, _largeBuffer, provider, out _);
 
                 handler.AppendFormatted(t);

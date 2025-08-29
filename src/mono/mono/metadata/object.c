@@ -6884,6 +6884,7 @@ mono_object_isinst_vtable_mbyref (MonoVTable *vt, MonoClass *klass, MonoError *e
 		}
 	} else {
 		mono_class_setup_supertypes (klass);
+		MH_LOGV(MH_LVL_TRACE, "Checking if klass %p has parent %p\n", oklass, klass);
 		if (mono_class_has_parent_fast (oklass, klass)) {
 			result = TRUE;
 			goto leave;
