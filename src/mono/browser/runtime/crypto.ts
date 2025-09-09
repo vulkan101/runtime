@@ -17,7 +17,7 @@ export function mono_wasm_browser_entropy (bufferPtr: number, bufferLength: numb
         const end = BigInt(bufferPtr) + BigInt(bufferLength);
         targetView = memoryView.subarray(Number(start), Number(end));
     } else {
-        targetView = memoryView.subarray(bufferPtr + bufferLength);
+        targetView = memoryView.subarray(bufferPtr, bufferPtr + bufferLength);
     }
 
     // When threading is enabled, Chrome doesn't want SharedArrayBuffer to be passed to crypto APIs
