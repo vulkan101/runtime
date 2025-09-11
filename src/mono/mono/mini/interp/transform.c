@@ -2757,9 +2757,6 @@ interp_transform_internal_calls (MonoMethod *method, MonoMethod *target_method, 
 	return target_method;
 }
 
-static gboolean
-interp_type_as_ptr (MonoType *tp);
-
 /* Return whenever TYPE represents a vtype with only one scalar member */
 static gboolean
 is_scalar_vtype (MonoType *type)
@@ -2793,29 +2790,40 @@ is_scalar_vtype (MonoType *type)
 
 	return TRUE;
 }
+static gboolean
+interp_type_as_ptr_test (MonoType *tp) ;
 
 static gboolean
-interp_type_as_ptr (MonoType *tp)
+is_scalar_vtype_test(MonoType *type)
 {
-	if (MONO_TYPE_IS_POINTER (tp))
-		return TRUE;
-	if (MONO_TYPE_IS_REFERENCE (tp))
-		return TRUE;
-	if ((tp)->type == MONO_TYPE_I4)
-		return TRUE;
-#if SIZEOF_VOID_P == 8
-	if ((tp)->type == MONO_TYPE_I8 || (tp)->type == MONO_TYPE_U8)
-		return TRUE;
-#endif
-	if ((tp)->type == MONO_TYPE_BOOLEAN)
-		return TRUE;
-	if ((tp)->type == MONO_TYPE_CHAR)
-		return TRUE;
-	if ((tp)->type == MONO_TYPE_VALUETYPE && m_class_is_enumtype (m_type_data_get_klass_unchecked (tp)))
-		return TRUE;
-	if (is_scalar_vtype (tp))
-		return TRUE;
-	return FALSE;
+	MonoClass *klass;
+	MonoClassField *field;
+	gpointer iter;
+
+	if (!MONO_TYPE_ISSTRUCT (type))
+		return FALSE;
+	klass = mono_class_from_mono_type_internal (type);
+	mono_class_init_internal (klass);
+
+	int size = mono_class_value_size (klass, NULL);
+	if (size == 0 || size > SIZEOF_VOID_P)
+		return FALSE;
+
+	iter = NULL;
+	int nfields = 0;
+	field = NULL;
+	while ((field = mono_class_get_fields_internal (klass, &iter))) {
+		if (field->type->attrs & FIELD_ATTRIBUTE_STATIC)
+			continue;
+		nfields ++;
+		if (nfields > 1)
+			return FALSE;
+		MonoType *t = mini_get_underlying_type (field->type);
+		if (!interp_type_as_ptr_test (t))
+			return FALSE;
+	}
+
+	return TRUE;
 }
 
 #define INTERP_TYPE_AS_PTR(tp) interp_type_as_ptr (tp)
@@ -2827,8 +2835,10 @@ interp_type_as_ptr (MonoType *tp)
 static uint16_t encode_signature(const int* params, int param_count, int return_type) {
     uint16_t encoded = 0;
     // parameters must be either 4 or 8. No params implcitly encodes V 
+    // a zero in any position here means the type is not a pointer type and not suitable for icalls
     for (int i = 0; i < param_count && i < MAX_SIG_PARAMS; ++i) {
-	
+	if (!(params[i]))
+		return MINT_ICALLSIG_MAX;
         uint16_t code = (params[i] == SIG_PARAM_4B) ? ENCODE_4BYTE : ENCODE_8BYTE;
         encoded |= (code << (2 * (MAX_SIG_PARAMS - i)));
     }    
@@ -2851,7 +2861,7 @@ static uint16_t encode_signature(const int* params, int param_count, int return_
 	    else 
 		sprintf(buff + param_count + offset, "_V");
     
-	    MH_LOGV(MH_LVL_TRACE, "Encoded signature %s as %d", buff, encoded);
+	    MH_LOGV(MH_LVL_VERBOSE, "Encoded signature %s as %d", buff, encoded);
     }
     #endif
     return encoded;
@@ -2889,6 +2899,56 @@ void decode_signature(uint16_t encoded, int* params_out, int* param_count_out, i
 
 #define GET_PARAM_SIZE(tp)  (interp_type_as_ptr8(tp) ? SIG_PARAM_8B : interp_type_as_ptr4(tp) ? SIG_PARAM_4B : SIG_PARAM_VOID)
 
+gboolean
+interp_type_as_ptr_test (MonoType *tp)
+{
+	if (MONO_TYPE_IS_POINTER (tp)) {
+		MH_LOGV(MH_LVL_TRACE, "MONO_TYPE_IS_POINTER evaluated true");
+		return TRUE;
+	}
+	if (MONO_TYPE_IS_REFERENCE (tp)) {
+		MH_LOGV(MH_LVL_TRACE, "MONO_TYPE_IS_REFERENCE evaluated true");
+		return TRUE;
+	}
+	if ((tp)->type == MONO_TYPE_I4) {
+		MH_LOGV(MH_LVL_TRACE, "tp->type == MONO_TYPE_I4 evaluated true");
+		return TRUE;
+	}
+#if SIZEOF_VOID_P == 8
+	if ((tp)->type == MONO_TYPE_I8 || (tp)->type == MONO_TYPE_U8) {
+		MH_LOGV(MH_LVL_TRACE, "tp->type == MONO_TYPE_I8 or tp->type == MONO_TYPE_U8 evaluated true");
+		return TRUE;
+	}
+#endif
+	if ((tp)->type == MONO_TYPE_BOOLEAN) {
+		MH_LOGV(MH_LVL_TRACE, "tp->type == MONO_TYPE_BOOLEAN evaluated true");
+		return TRUE;
+	}
+	if ((tp)->type == MONO_TYPE_CHAR) {
+		MH_LOGV(MH_LVL_TRACE, "tp->type == MONO_TYPE_CHAR evaluated true");
+		return TRUE;
+	}
+	if ((tp)->type == MONO_TYPE_VALUETYPE && m_class_is_enumtype (m_type_data_get_klass_unchecked (tp))) {
+		MH_LOGV(MH_LVL_TRACE, "tp->type == MONO_TYPE_VALUETYPE and m_class_is_enumtype() evaluated true");
+		return TRUE;
+	}
+	if (is_scalar_vtype (tp)) {
+		MH_LOGV(MH_LVL_TRACE, "is_scalar_vtype(tp) evaluated true");
+		return TRUE;
+	}
+	else 
+		MH_LOGV(MH_LVL_TRACE, "is_scalar_vtype(tp) evaluated false");
+
+	if (is_scalar_vtype_test (tp)) {
+		MH_LOGV(MH_LVL_TRACE, "is_scalar_vtype_test(tp) evaluated true");
+		return TRUE;
+	}
+	else 
+		MH_LOGV(MH_LVL_TRACE, "is_scalar_vtype_test(tp) evaluated false");
+
+	return FALSE;
+}
+
 static MintICallSig
 interp_get_icall_sig (MonoMethodSignature *sig)
 {
@@ -2897,8 +2957,19 @@ interp_get_icall_sig (MonoMethodSignature *sig)
 	MH_LOGV(MH_LVL_TRACE, "Getting icall sig for method with %d params", sig->param_count);
 	for (int i = 0; i < sig->param_count && i < MAX_SIG_PARAMS; ++i) {
 		MonoType *tp = sig->params[i];
-		params[i] =  GET_PARAM_SIZE(tp);
-		MH_LOGV(MH_LVL_TRACE, "Type %s encoded as %d", mono_type_get_name(tp), params[i]);
+		params[i] =  GET_PARAM_SIZE(tp);			
+		if (params[i] == 0) // this is ok but check logic against old method
+		{
+			MH_LOGV(MH_LVL_TRACE, "Type %s encoded as %d. tp->type value is %d. Will check against old method", mono_type_get_name(tp), params[i], tp->type);
+			gboolean isPtrOld = interp_type_as_ptr_test(tp);					
+			if (isPtrOld)
+			{
+				// error
+				assert(0 && "interp_get_icall_sig: type_as_ptr mismatch between old and new method");
+			}
+			else
+				return MINT_ICALLSIG_MAX; // not a pointer type - double check			
+		}
 	}
 	// returnType of 0 == void
 	int returnType = GET_PARAM_SIZE(sig->ret);

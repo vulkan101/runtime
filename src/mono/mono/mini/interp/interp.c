@@ -6447,8 +6447,7 @@ MINT_IN_CASE(MINT_BRTRUE_I8_SP) ZEROP_SP(gint64, !=); MINT_IN_BREAK;
 			MINT_IN_BREAK;
 		}
 		MINT_IN_CASE(MINT_GETCHR) {
-			MonoString *s = LOCAL_VAR (ip [2], MonoString*);
-			MH_LOGV(MH_LVL_VERBOSE, "MINT_GETCHR, %p", s);
+			MonoString *s = LOCAL_VAR (ip [2], MonoString*);			
 			NULL_CHECK (s);
 			int i32 = LOCAL_VAR (ip [3], int);
 			if (i32 < 0 || i32 >= mono_string_length_internal (s))

@@ -21,7 +21,7 @@ export const bound_cs_function_symbol = Symbol.for("wasm bound_cs_function");
 export const bound_js_function_symbol = Symbol.for("wasm bound_js_function");
 export const imported_js_function_symbol = Symbol.for("wasm imported_js_function");
 export const proxy_debug_symbol = Symbol.for("wasm proxy_debug");
-export const JavaScriptMarshalerArgSize = isWasm64 ? 64 : 32;
+export const JavaScriptMarshalerArgSize = 64;
 
 // keep in sync with JSMarshalerArgumentImpl offsets
 const enum JSMarshalerArgumentOffsets {

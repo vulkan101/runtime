@@ -8,6 +8,12 @@ typedef gpointer I8;
 gboolean is_scalar_vtype(MonoType* tp);
 
 gboolean
+interp_type_as_ptr (MonoType *tp)
+{
+	return (interp_type_as_ptr8(tp) || interp_type_as_ptr4(tp));
+}
+
+gboolean
 interp_type_as_ptr4 (MonoType *tp)
 {
 	if(sizeof(gpointer) == 4)
@@ -42,20 +48,17 @@ interp_type_as_ptr8 (MonoType *tp)
 	if (MONO_TYPE_IS_REFERENCE (tp))
 		return TRUE;	
 	if ((tp)->type == MONO_TYPE_I8 || (tp)->type == MONO_TYPE_U8)
-		return TRUE;		
+		return TRUE;
 	if ((tp)->type == MONO_TYPE_R8)
-		return TRUE;	
+		return TRUE;
 	// return true for value types that are NOT enums
-	if ((tp)->type == MONO_TYPE_VALUETYPE && !m_class_is_enumtype (m_type_data_get_klass_unchecked (tp)))
+	//if ((tp)->type == MONO_TYPE_VALUETYPE && !m_class_is_enumtype (m_type_data_get_klass_unchecked (tp)))
+	//	return TRUE;
+	if (is_scalar_vtype (tp))
 		return TRUE;
 	return FALSE;
 }
 
-static gboolean
-interp_type_as_ptr(MonoType *tp)
-{
-	return (interp_type_as_ptr4(tp) || interp_type_as_ptr8(tp));
-}
 /* is_scalar_vtype taken from transform.c */
 gboolean 
 is_scalar_vtype (MonoType *type)
