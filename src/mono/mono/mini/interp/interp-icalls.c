@@ -48,12 +48,7 @@ interp_type_as_ptr8 (MonoType *tp)
 	if (MONO_TYPE_IS_REFERENCE (tp))
 		return TRUE;	
 	if ((tp)->type == MONO_TYPE_I8 || (tp)->type == MONO_TYPE_U8)
-		return TRUE;
-	if ((tp)->type == MONO_TYPE_R8)
-		return TRUE;
-	// return true for value types that are NOT enums
-	//if ((tp)->type == MONO_TYPE_VALUETYPE && !m_class_is_enumtype (m_type_data_get_klass_unchecked (tp)))
-	//	return TRUE;
+		return TRUE;	
 	if (is_scalar_vtype (tp))
 		return TRUE;
 	return FALSE;
@@ -356,7 +351,13 @@ do_icall (MonoMethodSignature *sig, MintICallSig op, stackval *ret_sp, stackval 
 	}
 	case MINT_ICALLSIG_88_8: {
 		typedef I8(*T)(I8, I8);
+		if (!ptr)
+			MH_LOGV(MH_LVL_INFO, "Function pointer is NULL!");		
+		
 		T func = (T)ptr;
+		if (!func)
+			MH_LOGV(MH_LVL_INFO, "Cast function pointer is NULL!");		
+		MH_LOGV(MH_LVL_TRACE, "Callig MINT_ICALLSIG_88_8 with pointer %p", ptr);
 		ret_sp->data.p = func(sp[0].data.p, sp[1].data.p);
 		break;
 	}
