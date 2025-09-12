@@ -7053,13 +7053,14 @@ mono_lookup_internal_call_full_with_flags (MonoMethod *method, gboolean warn_on_
 
 	mono_icall_lock ();
 	locked = TRUE;
-
+	MH_LOGV(MH_LVL_TRACE, "Looking for method with sig %s", mname);
 	res = g_hash_table_lookup (icall_hash, mname);
 	if (res) {
 		MonoIcallHashTableValue *value = (MonoIcallHashTableValue *)res;
 		if (flags)
 			*flags = value->flags;
 		res = value->method;
+		MH_LOGV(MH_LVL_TRACE, "Found %p", value->method);
 		goto exit;
 	}
 
@@ -7088,8 +7089,10 @@ mono_lookup_internal_call_full_with_flags (MonoMethod *method, gboolean warn_on_
 		locked = FALSE;
 
 		if (res)
+		{
+			MH_LOGV(MH_LVL_TRACE, "Found method in icall_table");
 			goto exit;
-
+		}
 		if (warn_on_missing) {
 			g_warning ("cant resolve internal call to \"%s\" (tested without signature also)", mname);
 			g_print ("\nYour mono runtime and class libraries are out of sync.\n");
@@ -7130,6 +7133,8 @@ mono_lookup_internal_call_full (MonoMethod *method, gboolean warn_on_missing, mo
 		*foreign = FALSE;
 
 	guint32 flags = MONO_ICALL_FLAGS_NONE;
+	MH_LOGV(MH_LVL_TRACE, "mono_lookup_internal_call_full: Looking up %s\n", method->name);
+
 	gconstpointer addr = mono_lookup_internal_call_full_with_flags (method, warn_on_missing, &flags);
 
 	if (uses_handles && (flags & MONO_ICALL_FLAGS_USES_HANDLES))

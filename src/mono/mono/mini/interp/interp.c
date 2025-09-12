@@ -4192,7 +4192,7 @@ main_loop:
 			frame->state.ip = ip + 8;
 			
 			if (imethod->method)
-				MH_LOG ("Calling native method %s with signature %s\n", mono_method_full_name (imethod->method, TRUE), mono_signature_full_name (csignature));
+				MH_LOG ("Calling native method %s with signature %s", mono_method_full_name (imethod->method, TRUE), mono_signature_full_name (csignature));
 			ves_pinvoke_method (imethod, csignature, (MonoFuncV)code, context, frame, (stackval*)(locals + ip [1]), (stackval*)(locals + ip [3]), save_last_error, cache, &gc_transitions);			
 			EXCEPTION_CHECKPOINT;
 			CHECK_RESUME_STATE (context);

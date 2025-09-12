@@ -153,6 +153,7 @@ icall_table_lookup (MonoMethod *method, char *classname, char *methodname, char 
 
 	void *p = bsearch (&token_idx, indexes, indexes_size, 4, compare_int);
 	if (!p) {
+        MH_LOGV(MH_LVL_INFO, "wasm: Unable to lookup icall: %s (%s)\n", methodname, mono_method_get_name (method));
 		return NULL;
 		printf ("wasm: Unable to lookup icall: %s\n", mono_method_get_name (method));
 		exit (1);
@@ -160,7 +161,7 @@ icall_table_lookup (MonoMethod *method, char *classname, char *methodname, char 
 
 	uint32_t idx = (int*)p - indexes;
 	*out_flags = flags [idx];
-
+    MH_LOGV(MH_LVL_TRACE, "Will ICALL: %s %x %d %d\n", methodname, token, idx, (int)(funcs [idx]));
 	//printf ("ICALL: %s %x %d %d\n", methodname, token, idx, (int)(funcs [idx]));
 
 	return funcs [idx];
@@ -350,7 +351,7 @@ mono_wasm_load_runtime_common (int debug_level, MonoLogCallback log_callback, co
 #endif    
 	init_icall_table ();
 
-    #undef CHECK_SYMBOL_LOOKUP
+    #define CHECK_SYMBOL_LOOKUP
     #ifdef CHECK_SYMBOL_LOOKUP
     {
         printf("Checking mono_lookup_icall_symbol_internal\n");
