@@ -2954,6 +2954,12 @@ interp_get_icall_sig (MonoMethodSignature *sig)
 {
 	MintICallSig op = MINT_ICALLSIG_MAX;
 	int params[MAX_SIG_PARAMS];
+	if (sig->param_count > MAX_SIG_PARAMS)
+	{
+		MH_LOGV(MH_LVL_VERBOSE, "Parameter count (%d) too high for icall enum encoding (MAX_SIG_PARAMS is %d)", sig->param_count, MAX_SIG_PARAMS);
+		return MINT_ICALLSIG_MAX; 
+	}
+
 	MH_LOGV(MH_LVL_TRACE, "Getting icall sig for method with %d params", sig->param_count);
 	for (int i = 0; i < sig->param_count && i < MAX_SIG_PARAMS; ++i) {
 		MonoType *tp = sig->params[i];
