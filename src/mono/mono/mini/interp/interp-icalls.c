@@ -25,6 +25,8 @@ interp_type_as_ptr4 (MonoType *tp)
 	}
 	if ((tp)->type == MONO_TYPE_I4)
 		return TRUE;
+	if ((tp)->type == MONO_TYPE_U4) // <- is this ok. wasn't in original check
+		return TRUE;
 	if ((tp)->type == MONO_TYPE_BOOLEAN)
 		return TRUE;
 	if ((tp)->type == MONO_TYPE_CHAR)
