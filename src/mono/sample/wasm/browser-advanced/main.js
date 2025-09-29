@@ -6,7 +6,11 @@ import { dotnet, exit } from './dotnet.js'
 function add(a, b) {
     return a + b;
 }
+function setLogLevel(logLevel) {
 
+    const runtimeApi = globalThis.getDotnetRuntime(0);
+    runtimeApi.INTERNAL.MH_SetLogVerbosity(logLevel);
+}
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -93,10 +97,13 @@ try {
 
     const config = getConfig();
     const exports = await getAssemblyExports(config.mainAssemblyName);
-
+    console.clear();
     //console.debug("Accessing console:");
     const result = exports.Sample.Test.SimpleTestConsole();
     console.debug(`result: ${result}`);
+    setLogLevel(3);
+    console.clear();
+    exports.Sample.Test.TestGL();
 
     const meaning = exports.Sample.Test.TestMeaning();
     if (typeof Module.GL !== "object") {

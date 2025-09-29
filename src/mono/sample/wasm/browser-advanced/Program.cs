@@ -44,6 +44,9 @@ namespace Sample
         [LibraryImport("fibonacci")]
         public static partial int Fibonacci(int n);
 
+        [LibraryImport("testGLStartup")]
+        public static partial void testGLStartup();
+
         [JSImport("Sample.Test.add", "main.js")]
         internal static partial int Add(int a, int b);
 
@@ -116,12 +119,19 @@ namespace Sample
             Console.WriteLine("MH DOING A TEST");
         }
         [JSExport]
+        internal static void TestGL()
+        {
+            testGLStartup();
+        }
+        [JSExport]
         internal static int TestMeaning()
         {
+            testGLStartup();
             int testSize = 123;
             Console.WriteLine("Size of an int is " + sizeof(int) + " bytes, and test size is " + testSize + " bytes.");
             // call to C code via [DllImport]
             var half = Fibonacci(8);
+                   
             // call back to JS via [JSImport]
             return Add(half, half);
         }

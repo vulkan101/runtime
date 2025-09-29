@@ -16,6 +16,20 @@ using System.Globalization;
 using  System.SpanTests;
 namespace Sample
 {
+    [StructLayout(LayoutKind.Sequential)]
+    public class NonExistField
+    {
+
+    }
+    public class SubBuffer : SafeBuffer
+    {
+        public SubBuffer(bool ownsHandle) : base(ownsHandle) { }
+
+        protected override bool ReleaseHandle()
+        {
+            throw new NotImplementedException();
+        }
+    }
     public partial class Test
     {
         private char[] _largeBuffer = new char[4096];
@@ -397,7 +411,39 @@ namespace Sample
                 Marshal.ZeroFreeGlobalAllocAnsi(ptr);
             }
         }
-        
+        [JSExport]
+        public static async Task TestMath()
+        {
+            // can we call ModF from here? looks like it's an internal call.
+            double test = Math.Truncate(6.666);
+            Console.WriteLine($"Math.Truncate(6.666) = {test}");
+        }
+        // should be encoded as 4_V, not V_V
+        public static uint TestUint_4_V()
+        {
+            uint retval = 666;
+            return retval;
+        }
+        [JSExport]
+        public static async Task TestUint()
+        {          
+            uint id = TestUint_4_V();            
+            Console.WriteLine($"TestUint got value {id}");
+        }
+        [JSExport]
+        public static async Task TestBuffer(string str)
+        {
+            //OffsetOf_NoSuchFieldName_ThrowsArgumentException            
+            var buffer = new SubBuffer(true);
+            //buffer.Initialize(ulong.MaxValue);
+            Assert.Throws<ArgumentOutOfRangeException>("numBytes", () => buffer.Initialize(ulong.MaxValue));        
+        }
+        [JSExport]
+        public static async Task OffsetOf_NoSuchFieldName_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Marshal.OffsetOf(typeof(NonExistField), "NonExistField"));
+            Assert.Throws<ArgumentException>(() => Marshal.OffsetOf<NonExistField>("NonExistField"));
+        }
 
         [JSExport]
         public static async Task DoTestMethod()
