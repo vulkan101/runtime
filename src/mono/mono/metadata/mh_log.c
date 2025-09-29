@@ -1,7 +1,7 @@
 #include <mono/metadata/mh_log.h>
 #include <mono/metadata/metadata-internals.h>
 
-static int MH_LOG_verbosity_level = MH_LVL_DEBUG;
+static int MH_LOG_verbosity_level = MH_LVL_TRACE;
 static int MH_LOG_verbosity_initialized = 0;
 
 void mh_log_set_verbosity(int verbosity)

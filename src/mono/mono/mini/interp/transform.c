@@ -2961,7 +2961,7 @@ interp_get_icall_sig (MonoMethodSignature *sig)
 		if (params[i] == 0) // this is ok but check logic against old method
 		{
 			MH_LOGV(MH_LVL_TRACE, "Type %s encoded as %d. tp->type value is %d. Will check against old method", mono_type_get_name(tp), params[i], tp->type);
-			gboolean isPtrOld = interp_type_as_ptr_test(tp);				
+			gboolean isPtrOld = interp_type_as_ptr_test(tp);					
 			if (isPtrOld)
 			{
 				// error
@@ -2975,7 +2975,7 @@ interp_get_icall_sig (MonoMethodSignature *sig)
 	}
 	// returnType of 0 == void
 	int returnType = GET_PARAM_SIZE(sig->ret);
-	MH_LOGV(MH_LVL_TRACE, "return type %s encoded as %d", mono_type_get_name(sig->ret), returnType);
+	MH_LOGV(MH_LVL_TRACE, "return type %s encoded as %d. p->type value is %d", mono_type_get_name(sig->ret), returnType, sig->ret->type);
 	op = encode_signature(params, sig->param_count, returnType);
 	return op;
 }
