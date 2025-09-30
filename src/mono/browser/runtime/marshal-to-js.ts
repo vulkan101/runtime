@@ -24,6 +24,7 @@ import { fixupPointer, free, localHeapViewF64, localHeapViewI32, localHeapViewU8
 import { call_delegate } from "./managed-exports";
 import { mono_log_debug } from "./logging";
 import { invoke_later_when_on_ui_thread_async } from "./invoke-js";
+import { add_offset, normalizePointer } from "./marshal";
 
 export function initialize_marshalers_to_js (): void {
     if (cs_to_js_marshalers.size == 0) {
@@ -82,9 +83,9 @@ export function bind_arg_marshal_to_js (sig: JSMarshalerType, marshaler_type: Ma
     const converter = get_marshaler_to_js_by_type(marshaler_type)!;
     const element_type = get_signature_arg1_type(sig);
 
-    const arg_offset = index * JavaScriptMarshalerArgSize;
+    const arg_offset = index * JavaScriptMarshalerArgSize as number;
     return (args: JSMarshalerArguments) => {
-        return converter(<any>args + arg_offset, element_type, res_marshaler, arg1_marshaler, arg2_marshaler, arg3_marshaler);
+        return converter(add_offset(args, arg_offset) as unknown as JSMarshalerArgument, element_type, res_marshaler, arg1_marshaler, arg2_marshaler, arg3_marshaler);
     };
 }
 
@@ -169,7 +170,7 @@ function _marshal_double_to_js (arg: JSMarshalerArgument): number | null {
     return get_arg_f64(arg);
 }
 
-function _marshal_intptr_to_js (arg: JSMarshalerArgument): number | null {
+function _marshal_intptr_to_js (arg: JSMarshalerArgument): number | bigint | null {
     const type = get_arg_type(arg);
     if (type == MarshalerType.None) {
         return null;
@@ -526,15 +527,18 @@ function _marshal_array_to_js_impl (arg: JSMarshalerArgument, element_type: Mars
         }
     } else if (element_type == MarshalerType.Byte) {
         const bufferOffset = fixupPointer(buffer_ptr, 0);
-        const sourceView = localHeapViewU8().subarray(bufferOffset, bufferOffset + length);
+        const normOffset = normalizePointer(bufferOffset);
+        const sourceView = localHeapViewU8().subarray(normOffset, normOffset + length);
         result = sourceView.slice();//copy
     } else if (element_type == MarshalerType.Int32) {
         const bufferOffset = fixupPointer(buffer_ptr, 2);
-        const sourceView = localHeapViewI32().subarray(bufferOffset, bufferOffset + length);
+        const normOffset = normalizePointer(bufferOffset);
+        const sourceView = localHeapViewI32().subarray(normOffset, normOffset + length);
         result = sourceView.slice();//copy
     } else if (element_type == MarshalerType.Double) {
         const bufferOffset = fixupPointer(buffer_ptr, 3);
-        const sourceView = localHeapViewF64().subarray(bufferOffset, bufferOffset + length);
+        const normOffset = normalizePointer(bufferOffset);
+        const sourceView = localHeapViewF64().subarray(normOffset, normOffset + length);
         result = sourceView.slice();//copy
     } else {
         throw new Error(`NotImplementedException ${element_type}. ${jsinteropDoc}`);

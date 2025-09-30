@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #include <emscripten.h>
 #include <emscripten/stack.h>
+#include <emscripten/console.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -11,6 +12,7 @@
 #include <math.h>
 #include <dlfcn.h>
 #include <sys/stat.h>
+
 
 #include <mono/metadata/appdomain.h>
 #include <mono/metadata/assembly.h>
@@ -22,6 +24,8 @@
 #include <mono/metadata/mono-gc.h>
 #include <mono/metadata/object.h>
 #include <mono/metadata/debug-helpers.h>
+#include <mono/metadata/mh_log.h>
+
 // FIXME: unavailable in emscripten
 // #include <mono/metadata/gc-internals.h>
 
@@ -74,10 +78,68 @@ wasm_trace_logger (const char *log_domain, const char *log_level, const char *me
 		exit (1);
 }
 
+#ifndef SIZEOF_VOID_P
+#pragma message ("MRH_LOGGING_DRIVER: SIZEOF_VOID_P is undefined in driver.c") 
+#define SIZEOF_VOID_P @SIZEOF_VOID_P@
+#endif 
+
+#if SIZEOF_VOID_P == 4
+#pragma message ("MRH_LOGGING_DRIVER: SIZEOF_VOID_P is 4 in driver.c.")
 typedef uint32_t target_mword;
+typedef int32_t d_handle;
+#elif SIZEOF_VOID_P == 8
+#pragma message ("MRH_LOGGING_DRIVER: SIZEOF_VOID_P is 8 in driver.c")
+typedef uint64_t target_mword;
+typedef int64_t d_handle;
+#else
+#pragma message ("MRH_LOGGING_DRIVER: SIZEOF_VOID_P is still undefined in driver.c")
+typedef uint32_t target_mword;
+typedef int32_t d_handle;
+#endif
+
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+
+// I put these here just to make sure they have access to EMSCRIPTEN_KEEPALIVE
+EMSCRIPTEN_KEEPALIVE void MH_TestVoid()
+{    
+    printf("MH_TestVoid called\n");
+}
+
+// I put these here just to make sure they have access to EMSCRIPTEN_KEEPALIVE
+EMSCRIPTEN_KEEPALIVE void MH_SetLogVerbosity(int32_t level)
+{
+    printf("MH_LOG_verbosity_level set to %d\n", level);
+    const char* envVar = getenv("MH_LOG_VERBOSITY");
+    printf("Environment variable MH_LOG_VERBOSITY is: %s\n", envVar ? envVar : "empty");
+    mh_log_set_verbosity(level);
+    printf("Retrieved MH_LOG_VERBOSITY: %d\n", mh_log_get_verbosity());
+}
+
+EMSCRIPTEN_KEEPALIVE void log_message(const char *filename, const char *message) {
+    FILE *file = fopen(filename, "a");  // Open for append, create if doesn't exist
+    if (file == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    fprintf(file, "%s\n", message);  // Write message followed by newline
+    fclose(file);  // Close the file
+}
+
+EMSCRIPTEN_KEEPALIVE void debug_log(const char* msg) {
+    EM_ASM({
+        console.log(UTF8ToString($0));
+    }, msg);
+}
+
 typedef target_mword SgenDescriptor;
 typedef SgenDescriptor MonoGCDescriptor;
-MONO_API int   mono_gc_register_root (char *start, size_t size, MonoGCDescriptor descr, MonoGCRootSource source, void *key, const char *msg);
+MONO_API int mono_gc_register_root (char *start, size_t size, MonoGCDescriptor descr, MonoGCRootSource source, void *key, const char *msg);
 void  mono_gc_deregister_root (char* addr);
 
 EMSCRIPTEN_KEEPALIVE int
@@ -116,7 +178,7 @@ mono_wasm_add_assembly (const char *name, const unsigned char *data, unsigned in
 		return 1;
 	}
 	char *assembly_name = strdup (name);
-	assert (assembly_name);
+	assert (assembly_name);    
 	mono_bundled_resources_add_assembly_resource (assembly_name, assembly_name, data, size, bundled_resources_free_func, assembly_name);
 	return mono_has_pdb_checksum ((char*)data, size);
 }
@@ -341,6 +403,10 @@ mono_wasm_string_from_utf16_ref (const mono_unichar2 * chars, int length, MonoSt
 		mono_gc_wbarrier_generic_store_atomic(result, NULL);
 	}
 	MONO_EXIT_GC_UNSAFE;
+    //FIXME: debug only
+    MH_LOG("Input length %d, result length: %d", length, mono_string_length(*result));
+    char* charString = mono_string_to_utf8(*result);
+    MH_LOG("Converted string with length %d to: %s", length, charString);
 }
 
 EMSCRIPTEN_KEEPALIVE int
@@ -367,10 +433,13 @@ mono_wasm_set_main_args (int argc, char* argv[])
 	mono_runtime_set_main_args (argc, argv);
 }
 
-EMSCRIPTEN_KEEPALIVE int
+EMSCRIPTEN_KEEPALIVE d_handle
 mono_wasm_strdup (const char *s)
 {
-	return (int)strdup (s);
+    MH_LOG("duplicating: %s (%p)", s, s);
+    char* result = strdup(s);
+    MH_LOG("duplicated: %s (%p)", result, result);
+	return (d_handle)result;
 }
 
 EMSCRIPTEN_KEEPALIVE void

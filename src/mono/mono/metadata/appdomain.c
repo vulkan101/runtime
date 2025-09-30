@@ -57,6 +57,7 @@
 #include <mono/utils/mono-threads.h>
 #include <mono/utils/w32api.h>
 #include <mono/metadata/components.h>
+#include <mono/metadata/mh_log.h>
 
 #ifdef HOST_WIN32
 #include <direct.h>
@@ -150,7 +151,7 @@ mono_runtime_set_no_exec (gboolean val)
  */
 gboolean
 mono_runtime_get_no_exec (void)
-{
+{	
 	return no_exec;
 }
 
@@ -234,7 +235,7 @@ mono_runtime_init (MonoDomain *domain, MonoThreadStartCB start_cb, MonoThreadAtt
 
 void
 mono_runtime_init_checked (MonoDomain *domain, MonoThreadStartCB start_cb, MonoThreadAttachCB attach_cb, MonoError *error)
-{
+{	
 	HANDLE_FUNCTION_ENTER ();
 
 	MonoAppDomainHandle ad;
@@ -244,14 +245,12 @@ mono_runtime_init_checked (MonoDomain *domain, MonoThreadStartCB start_cb, MonoT
 	mono_gc_base_init ();
 	mono_monitor_init ();
 	mono_marshal_init ();
-	mono_gc_init_icalls ();
-
+	mono_gc_init_icalls ();	
 	// We have to append here because otherwise this will run before the netcore hook (which is installed first), see https://github.com/dotnet/runtime/issues/34273
 	mono_install_assembly_preload_hook_v2 (mono_domain_assembly_preload, GUINT_TO_POINTER (FALSE), TRUE);
 	mono_install_assembly_search_hook_v2 (mono_domain_assembly_search, GUINT_TO_POINTER (FALSE), FALSE, FALSE);
 	mono_install_assembly_search_hook_v2 (mono_domain_assembly_postload_search, GUINT_TO_POINTER (FALSE), TRUE, FALSE);
-	mono_install_assembly_load_hook_v2 (mono_domain_fire_assembly_load, NULL, FALSE);
-
+	mono_install_assembly_load_hook_v2 (mono_domain_fire_assembly_load, NULL, FALSE);	
 	mono_thread_init (start_cb, attach_cb);
 
 	if (!mono_runtime_get_no_exec ()) {
@@ -276,22 +275,23 @@ mono_runtime_init_checked (MonoDomain *domain, MonoThreadStartCB start_cb, MonoT
 	mono_component_event_pipe ()->add_rundown_execution_checkpoint ("RuntimeResumed");
 
 	mono_component_event_pipe ()->write_event_ee_startup_start ();
-
+	
 	mono_type_initialization_init ();
 
 	if (!mono_runtime_get_no_exec ())
 		create_domain_objects (domain);
-
+	
+	MH_LOG("Calling mono_gc_init %p", &mono_gc_init);
 	/* GC init has to happen after thread init */
 	mono_gc_init ();
 
+	MH_LOG("mono_runtime_get_no_exec");
 	if (!mono_runtime_get_no_exec ())
 		mono_runtime_install_appctx_properties ();
 
-	mono_locks_tracer_init ();
-
+	mono_locks_tracer_init ();	
 	/* mscorlib is loaded before we install the load hook */
-	mono_domain_fire_assembly_load (mono_alc_get_default (), mono_defaults.corlib->assembly, NULL, error);
+	mono_domain_fire_assembly_load (mono_alc_get_default (), mono_defaults.corlib->assembly, NULL, error);	
 	goto_if_nok (error, exit);
 
 exit:
@@ -848,7 +848,7 @@ static GENERATE_GET_CLASS_WITH_CACHE (appctx, "System", "AppContext")
 /* Install properties into AppContext */
 void
 mono_runtime_install_appctx_properties (void)
-{
+{	
 	ERROR_DECL (error);
 	gpointer args [5];
 	int n_runtimeconfig_json_props = 0;
@@ -859,12 +859,13 @@ mono_runtime_install_appctx_properties (void)
 	guint32 *combined_value_lengths;
 	MonoFileMap *runtimeconfig_json_map = NULL;
 	gpointer runtimeconfig_json_map_handle = NULL;
+	MH_LOG("Calling runtimeconfig_json_get_buffer");
 	const char *buffer_start = runtimeconfig_json_get_buffer (runtime_config_arg, &runtimeconfig_json_map, &runtimeconfig_json_map_handle);
 	const char *buffer = buffer_start;
-
+	MH_LOG("Got buffer. calling mono_class_get_method_from_name_checked");
 	MonoMethod *setup = mono_class_get_method_from_name_checked (mono_class_get_appctx_class (), "Setup", 5, 0, error);
 	g_assert (setup);
-
+	MH_LOG("Got Setup method");
 	// FIXME: TRUSTED_PLATFORM_ASSEMBLIES is very large
 
 	// Combine and convert properties

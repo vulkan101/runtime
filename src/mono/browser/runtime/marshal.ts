@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 import WasmEnableThreads from "consts:wasmEnableThreads";
+import isWasm64 from "consts:isWasm64";
+//const isWasm64 = true; // TODO: remove hardcoding!
 
 import { js_owned_gc_handle_symbol, teardown_managed_proxy } from "./gc-handles";
 import { Module, loaderHelpers, mono_assert, runtimeHelpers } from "./globals";
@@ -11,6 +13,7 @@ import { GCHandle, JSHandle, MonoObject, MonoString, GCHandleNull, JSMarshalerAr
 import { TypedArray, VoidPtr } from "./types/emscripten";
 import { utf16ToString } from "./strings";
 import { get_managed_stack_trace } from "./managed-exports";
+import { mono_log_debug } from "./logging";
 
 export const cs_to_js_marshalers = new Map<MarshalerType, MarshalerToJs>();
 export const js_to_cs_marshalers = new Map<MarshalerType, MarshalerToCs>();
@@ -18,8 +21,8 @@ export const bound_cs_function_symbol = Symbol.for("wasm bound_cs_function");
 export const bound_js_function_symbol = Symbol.for("wasm bound_js_function");
 export const imported_js_function_symbol = Symbol.for("wasm imported_js_function");
 export const proxy_debug_symbol = Symbol.for("wasm proxy_debug");
+export const JavaScriptMarshalerArgSize = 64;
 
-export const JavaScriptMarshalerArgSize = 32;
 // keep in sync with JSMarshalerArgumentImpl offsets
 const enum JSMarshalerArgumentOffsets {
     BooleanValue = 0,
@@ -31,16 +34,17 @@ const enum JSMarshalerArgumentOffsets {
     SingleValue = 0,
     DoubleValue = 0,
     IntPtrValue = 0,
-    JSHandle = 4,
-    GCHandle = 4,
-    Length = 8,
-    Type = 12,
-    ElementType = 13,
-    ContextHandle = 16,
-    ReceiverShouldFree = 20,
-    CallerNativeTID = 24,
-    SyncDoneSemaphorePtr = 28,
+    JSHandle = 8,
+    GCHandle = 8,
+    Length = 16,
+    Type = 24,
+    ElementType = 25,
+    ContextHandle = 32,
+    ReceiverShouldFree = 40,
+    CallerNativeTID = 48,
+    SyncDoneSemaphorePtr = 56,
 }
+
 export const JSMarshalerTypeSize = 32;
 // keep in sync with JSFunctionBinding.JSBindingType
 const enum JSBindingTypeOffsets {
@@ -75,7 +79,7 @@ export function alloc_stack_frame (size: number): JSMarshalerArguments {
 
 export function get_arg (args: JSMarshalerArguments, index: number): JSMarshalerArgument {
     mono_assert(args, "Null args");
-    return <any>args + (index * JavaScriptMarshalerArgSize);
+    return add_offset(args, index * JavaScriptMarshalerArgSize) as any;
 }
 
 export function is_args_exception (args: JSMarshalerArguments): boolean {
@@ -87,24 +91,24 @@ export function is_args_exception (args: JSMarshalerArguments): boolean {
 export function is_receiver_should_free (args: JSMarshalerArguments): boolean {
     if (!WasmEnableThreads) return false;
     mono_assert(args, "Null args");
-    return getB8(<any>args + JSMarshalerArgumentOffsets.ReceiverShouldFree);
+    return getB8(add_offset(args, JSMarshalerArgumentOffsets.ReceiverShouldFree));
 }
 
 export function get_sync_done_semaphore_ptr (args: JSMarshalerArguments): VoidPtr {
     if (!WasmEnableThreads) return VoidPtrNull;
     mono_assert(args, "Null args");
-    return getI32(<any>args + JSMarshalerArgumentOffsets.SyncDoneSemaphorePtr) as any;
+    return get_arg_handle(args, JSMarshalerArgumentOffsets.SyncDoneSemaphorePtr) as any;
 }
 
 export function get_caller_native_tid (args: JSMarshalerArguments): PThreadPtr {
     if (!WasmEnableThreads) return PThreadPtrNull;
     mono_assert(args, "Null args");
-    return getI32(<any>args + JSMarshalerArgumentOffsets.CallerNativeTID) as any;
+    return get_arg_handle(args, JSMarshalerArgumentOffsets.CallerNativeTID) as any;
 }
 
 export function set_receiver_should_free (args: JSMarshalerArguments): void {
     mono_assert(args, "Null args");
-    setB8(<any>args + JSMarshalerArgumentOffsets.ReceiverShouldFree, true);
+    setB8(add_offset(args, JSMarshalerArgumentOffsets.ReceiverShouldFree), true);
 }
 
 export function set_args_context (args: JSMarshalerArguments): void {
@@ -115,67 +119,101 @@ export function set_args_context (args: JSMarshalerArguments): void {
     set_arg_proxy_context(exc);
     set_arg_proxy_context(res);
 }
-
+export function add_offset (
+    ptr: JSMarshalerArguments | JSMarshalerArgument | JSFunctionSignature | number | bigint | JSMarshalerType,
+    offset: number
+): number {
+    if (typeof ptr === "bigint") {
+        const result = ptr + BigInt(offset);
+        if (result > BigInt(Number.MAX_SAFE_INTEGER)) {
+            throw new Error("Offset too large for JavaScript typed arrays/DataView");
+        }
+        return Number(result);
+    } else {
+        return (ptr as number) + offset;
+    }
+}
+export function normalizePointer (inPtr: bigint | number | VoidPtr): any {
+    const ptr = typeof inPtr === "bigint" ? Number(inPtr) : inPtr;
+    if (!Number.isSafeInteger(ptr)) {
+        if (typeof inPtr === "bigint") {
+            throw new Error("pointer value is out of safe integer range. Converted from bigint.");
+        } else {
+            throw new Error("pointer value is out of safe integer range.");
+        }
+    }
+    return ptr;
+}
 export function get_sig (signature: JSFunctionSignature, index: number): JSMarshalerType {
     mono_assert(signature, "Null signatures");
-    return <any>signature + (index * JSMarshalerTypeSize) + JSMarshalerSignatureHeaderSize;
+    return add_offset(signature, (index * JSMarshalerTypeSize) + JSMarshalerSignatureHeaderSize) as any;
 }
 
 export function get_signature_type (sig: JSMarshalerType): MarshalerType {
     mono_assert(sig, "Null sig");
-    return <any>getU8(<any>sig + JSBindingTypeOffsets.Type);
+    return getU8(add_offset(sig, JSBindingTypeOffsets.Type)) as any;
 }
 
 export function get_signature_res_type (sig: JSMarshalerType): MarshalerType {
     mono_assert(sig, "Null sig");
-    return <any>getU8(<any>sig + JSBindingTypeOffsets.ResultMarshalerType);
+    return getU8(add_offset(sig, JSBindingTypeOffsets.ResultMarshalerType)) as any;
 }
 
 export function get_signature_arg1_type (sig: JSMarshalerType): MarshalerType {
     mono_assert(sig, "Null sig");
-    return <any>getU8(<any>sig + JSBindingTypeOffsets.Arg1MarshalerType);
+    mono_log_debug(`get_signature_arg1_type for sig '${sig}' is '${getU8(add_offset(sig, JSBindingTypeOffsets.Arg1MarshalerType))}'`);
+    return getU8(add_offset(sig, JSBindingTypeOffsets.Arg1MarshalerType)) as any;
 }
 
 export function get_signature_arg2_type (sig: JSMarshalerType): MarshalerType {
     mono_assert(sig, "Null sig");
-    return <any>getU8(<any>sig + JSBindingTypeOffsets.Arg2MarshalerType);
+    mono_log_debug(`get_signature_arg3_type for sig '${sig}' is '${getU8(add_offset(sig, JSBindingTypeOffsets.Arg2MarshalerType))}'`);
+    return getU8(add_offset(sig, JSBindingTypeOffsets.Arg2MarshalerType)) as any;
 }
 
 export function get_signature_arg3_type (sig: JSMarshalerType): MarshalerType {
     mono_assert(sig, "Null sig");
-    return <any>getU8(<any>sig + JSBindingTypeOffsets.Arg3MarshalerType);
+    mono_log_debug(`get_signature_arg3_type for sig '${sig}' is '${getU8(add_offset(sig, JSBindingTypeOffsets.Arg3MarshalerType))}'`);
+    return getU8(add_offset(sig, JSBindingTypeOffsets.Arg3MarshalerType)) as any;
 }
 
 export function get_signature_argument_count (signature: JSFunctionSignature): number {
     mono_assert(signature, "Null signatures");
-    return <any>getI32(<any>signature + JSBindingHeaderOffsets.ArgumentCount);
+    return getI32(add_offset(signature, JSBindingHeaderOffsets.ArgumentCount)) as any;
 }
 
 export function get_signature_version (signature: JSFunctionSignature): number {
     mono_assert(signature, "Null signatures");
-    return <any>getI32(<any>signature + JSBindingHeaderOffsets.Version);
+    const offset = add_offset(signature, JSBindingHeaderOffsets.Version);
+    return getI32(offset);
 }
 
 export function get_signature_handle (signature: JSFunctionSignature): number {
     mono_assert(signature, "Null signatures");
-    return <any>getI32(<any>signature + JSBindingHeaderOffsets.ImportHandle);
+    return getI32(add_offset(signature, JSBindingHeaderOffsets.ImportHandle)) as any;
 }
 
 export function get_signature_function_name (signature: JSFunctionSignature): string | null {
     mono_assert(signature, "Null signatures");
-    const functionNameOffset = <any>getI32(<any>signature + JSBindingHeaderOffsets.FunctionNameOffset);
+    const functionNameOffset = getI32(add_offset(signature, JSBindingHeaderOffsets.FunctionNameOffset));
     if (functionNameOffset === 0) return null;
-    const functionNameLength = <any>getI32(<any>signature + JSBindingHeaderOffsets.FunctionNameLength);
+    const functionNameLength = getI32(add_offset(signature, JSBindingHeaderOffsets.FunctionNameLength));
     mono_assert(functionNameOffset, "Null name");
-    return utf16ToString(<any>signature + functionNameOffset, <any>signature + functionNameOffset + functionNameLength);
+    return utf16ToString(
+        add_offset(signature, functionNameOffset),
+        add_offset(signature, functionNameOffset + functionNameLength)
+    );
 }
 
 export function get_signature_module_name (signature: JSFunctionSignature): string | null {
     mono_assert(signature, "Null signatures");
-    const moduleNameOffset = <any>getI32(<any>signature + JSBindingHeaderOffsets.ModuleNameOffset);
+    const moduleNameOffset = getI32(add_offset(signature, JSBindingHeaderOffsets.ModuleNameOffset));
     if (moduleNameOffset === 0) return null;
-    const moduleNameLength = <any>getI32(<any>signature + JSBindingHeaderOffsets.ModuleNameLength);
-    return utf16ToString(<any>signature + moduleNameOffset, <any>signature + moduleNameOffset + moduleNameLength);
+    const moduleNameLength = getI32(add_offset(signature, JSBindingHeaderOffsets.ModuleNameLength));
+    return utf16ToString(
+        add_offset(signature, moduleNameOffset),
+        add_offset(signature, moduleNameOffset + moduleNameLength)
+    );
 }
 
 export function get_sig_type (sig: JSMarshalerType): MarshalerType {
@@ -185,34 +223,34 @@ export function get_sig_type (sig: JSMarshalerType): MarshalerType {
 
 export function get_arg_type (arg: JSMarshalerArgument): MarshalerType {
     mono_assert(arg, "Null arg");
-    const type = getU8(<any>arg + JSMarshalerArgumentOffsets.Type);
-    return <any>type;
+    const type = getU8(add_offset(arg, JSMarshalerArgumentOffsets.Type));
+    return type as any;
 }
 
 export function get_arg_element_type (arg: JSMarshalerArgument): MarshalerType {
     mono_assert(arg, "Null arg");
-    const type = getU8(<any>arg + JSMarshalerArgumentOffsets.ElementType);
-    return <any>type;
+    const type = getU8(add_offset(arg, JSMarshalerArgumentOffsets.ElementType));
+    return type as any;
 }
 
 export function set_arg_type (arg: JSMarshalerArgument, type: MarshalerType): void {
     mono_assert(arg, "Null arg");
-    setU8(<any>arg + JSMarshalerArgumentOffsets.Type, type);
+    setU8(add_offset(arg, JSMarshalerArgumentOffsets.Type), type);
 }
 
 export function set_arg_element_type (arg: JSMarshalerArgument, type: MarshalerType): void {
     mono_assert(arg, "Null arg");
-    setU8(<any>arg + JSMarshalerArgumentOffsets.ElementType, type);
+    setU8(add_offset(arg, JSMarshalerArgumentOffsets.ElementType), type);
 }
 
 export function get_arg_bool (arg: JSMarshalerArgument): boolean {
     mono_assert(arg, "Null arg");
-    return getB8(<any>arg);
+    return getB8(arg as any);
 }
 
 export function get_arg_u8 (arg: JSMarshalerArgument): number {
     mono_assert(arg, "Null arg");
-    return getU8(<any>arg);
+    return getU8(arg as any);
 }
 
 export function get_arg_u16 (arg: JSMarshalerArgument): number {
@@ -230,9 +268,9 @@ export function get_arg_i32 (arg: JSMarshalerArgument): number {
     return getI32(<any>arg);
 }
 
-export function get_arg_intptr (arg: JSMarshalerArgument): number {
+export function get_arg_intptr (arg: JSMarshalerArgument): number | bigint {
     mono_assert(arg, "Null arg");
-    return getU32(<any>arg);
+    return isWasm64 ? getI64Big(<any>arg) : getU32(<any>arg);
 }
 
 export function get_arg_i52 (arg: JSMarshalerArgument): number {
@@ -289,9 +327,16 @@ export function set_arg_i32 (arg: JSMarshalerArgument, value: number): void {
     setI32(<any>arg, value);
 }
 
-export function set_arg_intptr (arg: JSMarshalerArgument, value: VoidPtr): void {
+export function set_arg_intptr (arg: JSMarshalerArgument, value: VoidPtr | bigint | number): void {
     mono_assert(arg, "Null arg");
-    setU32(<any>arg, <any>value);
+    if (isWasm64) {
+        if (typeof value !== "bigint")
+            setI64Big(<any>arg, BigInt(value as number));
+        else
+            setI64Big(<any>arg, value as bigint);
+    } else {
+        setU32(<any>arg, value as number);
+    }
 }
 
 export function set_arg_i52 (arg: JSMarshalerArgument, value: number): void {
@@ -323,31 +368,46 @@ export function set_arg_f32 (arg: JSMarshalerArgument, value: number): void {
     setF32(<any>arg, value);
 }
 
-export function get_arg_js_handle (arg: JSMarshalerArgument): JSHandle {
-    mono_assert(arg, "Null arg");
-    return <any>getI32(<any>arg + JSMarshalerArgumentOffsets.JSHandle);
+function set_arg_handle (arg: JSMarshalerArgument, offset: number, handle: JSHandle | GCHandle | undefined): void {
+    if (isWasm64) {
+        if (typeof handle !== "bigint")
+            setI64Big(add_offset(arg, offset), BigInt(handle as any as number));
+        else
+            setI64Big(add_offset(arg, offset), handle as bigint);
+    } else {
+        setI32(add_offset(arg, offset), handle as any);
+    }
 }
 
+function get_arg_handle (arg: JSMarshalerArgument | JSMarshalerArguments, offset: JSMarshalerArgumentOffsets): GCHandle | JSHandle | undefined {
+    return isWasm64 ? getI64Big(add_offset(arg, offset)) as any : getI32(add_offset(arg, offset)) as any;
+}
+
+export function get_arg_js_handle (arg: JSMarshalerArgument): JSHandle {
+    mono_assert(arg, "Null arg");
+    return get_arg_handle(arg, JSMarshalerArgumentOffsets.JSHandle) as any;
+    //return getI32(add_offset(arg, JSMarshalerArgumentOffsets.JSHandle)) as any;
+}
 export function set_arg_proxy_context (arg: JSMarshalerArgument): void {
     if (!WasmEnableThreads) return;
     mono_assert(arg, "Null arg");
-    setI32(<any>arg + JSMarshalerArgumentOffsets.ContextHandle, <any>runtimeHelpers.proxyGCHandle);
+    set_arg_handle(arg, JSMarshalerArgumentOffsets.ContextHandle, runtimeHelpers.proxyGCHandle);
 }
 
 export function set_js_handle (arg: JSMarshalerArgument, jsHandle: JSHandle): void {
     mono_assert(arg, "Null arg");
-    setI32(<any>arg + JSMarshalerArgumentOffsets.JSHandle, <any>jsHandle);
+    set_arg_handle(arg, JSMarshalerArgumentOffsets.JSHandle, jsHandle);
     set_arg_proxy_context(arg);
 }
 
 export function get_arg_gc_handle (arg: JSMarshalerArgument): GCHandle {
     mono_assert(arg, "Null arg");
-    return <any>getI32(<any>arg + JSMarshalerArgumentOffsets.GCHandle);
+    return get_arg_handle(arg, JSMarshalerArgumentOffsets.GCHandle) as any;
 }
 
 export function set_gc_handle (arg: JSMarshalerArgument, gcHandle: GCHandle): void {
     mono_assert(arg, "Null arg");
-    setI32(<any>arg + JSMarshalerArgumentOffsets.GCHandle, <any>gcHandle);
+    set_arg_handle(arg, JSMarshalerArgumentOffsets.GCHandle, gcHandle);
     set_arg_proxy_context(arg);
 }
 
@@ -358,17 +418,17 @@ export function get_string_root (arg: JSMarshalerArgument): WasmRoot<MonoString>
 
 export function get_arg_length (arg: JSMarshalerArgument): number {
     mono_assert(arg, "Null arg");
-    return <any>getI32(<any>arg + JSMarshalerArgumentOffsets.Length);
+    return getI32(add_offset(arg, JSMarshalerArgumentOffsets.Length)) as any;
 }
 
 export function set_arg_length (arg: JSMarshalerArgument, size: number): void {
     mono_assert(arg, "Null arg");
-    setI32(<any>arg + JSMarshalerArgumentOffsets.Length, size);
+    setI32(add_offset(arg, JSMarshalerArgumentOffsets.Length), size);
 }
 
 export function set_root (arg: JSMarshalerArgument, root: WasmRoot<MonoObject>): void {
     mono_assert(arg, "Null arg");
-    setU32(<any>arg + 0, root.get_address());
+    setU32(add_offset(arg, 0), root.get_address());
 }
 
 export interface IDisposable {
@@ -475,9 +535,10 @@ abstract class MemoryView implements IMemoryView {
     _unsafe_create_view (): TypedArray {
         // this view must be short lived so that it doesn't fail after wasm memory growth
         // for that reason we also don't give the view out to end user and provide set/slice/copyTo API instead
-        const view = this._viewType == MemoryViewType.Byte ? new Uint8Array(localHeapViewU8().buffer, <any>this._pointer, this._length)
-            : this._viewType == MemoryViewType.Int32 ? new Int32Array(localHeapViewI32().buffer, <any>this._pointer, this._length)
-                : this._viewType == MemoryViewType.Double ? new Float64Array(localHeapViewF64().buffer, <any>this._pointer, this._length)
+
+        const view = this._viewType == MemoryViewType.Byte ? new Uint8Array(localHeapViewU8().buffer, <any>normalizePointer(this._pointer), this._length)
+            : this._viewType == MemoryViewType.Int32 ? new Int32Array(localHeapViewI32().buffer, <any>normalizePointer(this._pointer), this._length)
+                : this._viewType == MemoryViewType.Double ? new Float64Array(localHeapViewF64().buffer, <any>normalizePointer(this._pointer), this._length)
                     : null;
         if (!view) throw new Error("NotImplementedException");
         return view;

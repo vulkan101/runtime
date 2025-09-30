@@ -42,7 +42,7 @@ namespace Microsoft.Win32.SafeHandles
     }
 }
 namespace System
-{
+{        
     public partial class AccessViolationException : System.SystemException
     {
         public AccessViolationException() { }

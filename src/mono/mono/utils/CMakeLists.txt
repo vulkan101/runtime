@@ -36,6 +36,11 @@ else()
     set(utils_platform_sources ${utils_unix_sources})
 endif()
 
+if(HOST_WASM AND USES_MEM64)
+    set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -DMEMORY64 --target=wasm64")
+    message(STATUS "MRH_LOGGING_UTILS: Set CMAKE_ASM_FLAGS to: '${CMAKE_ASM_FLAGS}'")
+endif()
+
 set(utils_common_sources
     mono-sha1.c
     mono-logger.c
@@ -188,6 +193,9 @@ else()
 #message(FATAL_ERROR "")
 endif()
 
+message(STATUS "MRH_LOGGING_UTILS: TARGET_WASM is: '${TARGET_WASM}'")
+message(STATUS "MRH_LOGGING_UTILS: MONO_CROSS_COMPILE is: '${MONO_CROSS_COMPILE}'")
+
 if(MONO_CROSS_COMPILE)
 set(utils_arch_sources "${utils_arch_sources};mono-hwcap-cross.c")
 elseif(TARGET_AMD64 OR TARGET_X86)
@@ -202,6 +210,7 @@ elseif(TARGET_S390X)
 set(utils_arch_sources "${utils_arch_sources};mono-hwcap-s390x.c")
 elseif(TARGET_WASM)
 set(utils_arch_sources "${utils_arch_sources};mono-hwcap-wasm.c;mono-mmap-wasm.c")
+message(STATUS "MRH_LOGGING_UTILS: added mono-mmap-wasm.c, utils_arch_sources is '${utils_arch_sources}''")
 elseif(TARGET_WASI)
 set(utils_arch_sources "${utils_arch_sources};mono-hwcap-wasm.c")
 elseif(TARGET_POWERPC OR TARGET_POWERPC64)

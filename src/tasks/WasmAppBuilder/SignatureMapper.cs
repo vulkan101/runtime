@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -11,6 +11,14 @@ using WasmAppBuilder;
 
 internal static class SignatureMapper
 {
+#if SignatureMappingWasm64
+    private const char ptrChar = 'L'; // Pointer types are L for wasm64
+    private const string refVoid = "VL"; // ByRef structs are passed as a pointer to the struct in slot 0
+#else
+    private const char ptrChar = 'I'; // Pointer types are I for wasm32
+    private const string refVoid = "VI"; // ByRef structs are passed as a pointer to the struct in slot 0
+#endif
+
     internal static char? TypeToChar(Type t, LogAdapter log, out bool isByRefStruct, int depth = 0)
     {
         isByRefStruct = false;
@@ -21,10 +29,11 @@ internal static class SignatureMapper
         }
 
         char? c = null;
+
         if (t.Namespace == "System") {
             c = t.Name switch
             {
-                nameof(String) => 'I',
+                nameof(String) => ptrChar,
                 nameof(Boolean) => 'I',
                 nameof(Char) => 'I',
                 nameof(SByte) => 'I',
@@ -37,35 +46,33 @@ internal static class SignatureMapper
                 nameof(UInt64) => 'L',
                 nameof(Single) => 'F',
                 nameof(Double) => 'D',
-                // FIXME: These will need to be L for wasm64
-                nameof(IntPtr) => 'I',
-                nameof(UIntPtr) => 'I',
+                nameof(IntPtr) => ptrChar,
+                nameof(UIntPtr) => ptrChar,
                 "Void" => 'V',
                 _ => null
             };
         }
 
         if (c == null)
-        {
-            // FIXME: Most of these need to be L for wasm64
+        {            
             if (t.IsArray)
-                c = 'I';
+                c = ptrChar;
             else if (t.IsByRef)
-                c = 'I';
+                c = ptrChar;
             else if (typeof(Delegate).IsAssignableFrom(t))
                 // FIXME: Should we narrow this to only certain types of delegates?
-                c = 'I';
+                c = ptrChar;
             else if (t.IsClass)
-                c = 'I';
+                c = ptrChar;
             else if (t.IsInterface)
-                c = 'I';
+                c = ptrChar;
             else if (t.IsEnum) {
                 Type underlyingType = t.GetEnumUnderlyingType();
                 c = TypeToChar(underlyingType, log, out _, ++depth);
             } else if (t.IsPointer)
-                c = 'I';
+                c = ptrChar;
             else if (PInvokeTableGenerator.IsFunctionPointer(t))
-                c = 'I';
+                c = ptrChar;
             else if (t.IsValueType)
             {
                 var fields = t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
@@ -73,7 +80,7 @@ internal static class SignatureMapper
                     Type fieldType = fields[0].FieldType;
                     return TypeToChar(fieldType, log, out isByRefStruct, ++depth);
                 } else if (PInvokeTableGenerator.IsBlittable(t, log))
-                    c = 'I';
+                    c =ptrChar;
 
                 isByRefStruct = true;
             }
@@ -85,8 +92,9 @@ internal static class SignatureMapper
     }
 
     public static string? MethodToSignature(MethodInfo method, LogAdapter log)
-    {
+    {        
         string? result = TypeToChar(method.ReturnType, log, out bool resultIsByRef)?.ToString();
+
         if (result == null)
         {
             return null;
@@ -94,7 +102,7 @@ internal static class SignatureMapper
 
         if (resultIsByRef) {
             // WASM abi passes a result-pointer in slot 0 instead of returning struct results
-            result = "VI";
+            result = refVoid;
         }
 
         foreach (var parameter in method.GetParameters())

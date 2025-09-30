@@ -454,7 +454,7 @@ HANDLES(MARSHAL_4, "DestroyStructure", ves_icall_System_Runtime_InteropServices_
 HANDLES(MARSHAL_9, "GetDelegateForFunctionPointerInternal", ves_icall_System_Runtime_InteropServices_Marshal_GetDelegateForFunctionPointerInternal, void, 3, (MonoQCallTypeHandle, gpointer, MonoObjectHandleOnStack))
 HANDLES(MARSHAL_10, "GetFunctionPointerForDelegateInternal", ves_icall_System_Runtime_InteropServices_Marshal_GetFunctionPointerForDelegateInternal, gpointer, 1, (MonoDelegate))
 NOHANDLES(ICALL(MARSHAL_11, "GetLastPInvokeError", ves_icall_System_Runtime_InteropServices_Marshal_GetLastPInvokeError))
-HANDLES(MARSHAL_12, "OffsetOf", ves_icall_System_Runtime_InteropServices_Marshal_OffsetOf, int, 2, (MonoReflectionType, MonoString))
+HANDLES(MARSHAL_12, "OffsetOf", ves_icall_System_Runtime_InteropServices_Marshal_OffsetOf, gpointer, 2, (MonoReflectionType, MonoString))
 HANDLES(MARSHAL_13, "PrelinkInternal", ves_icall_System_Runtime_InteropServices_Marshal_Prelink, void, 1, (MonoReflectionMethod))
 HANDLES(MARSHAL_20, "PtrToStructureHelper", ves_icall_System_Runtime_InteropServices_Marshal_PtrToStructureHelper, void, 3, (gconstpointer, MonoObject, MonoBoolean))
 NOHANDLES(ICALL(MARSHAL_29a, "SetLastPInvokeError", ves_icall_System_Runtime_InteropServices_Marshal_SetLastPInvokeError))
@@ -496,6 +496,9 @@ HANDLES(RT_1, "CreateInstanceInternal", ves_icall_System_RuntimeType_CreateInsta
 HANDLES(RT_28, "FunctionPointerReturnAndParameterTypes", ves_icall_RuntimeType_FunctionPointerReturnAndParameterTypes, GPtrArray_ptr, 1, (MonoQCallTypeHandle))
 NOHANDLES(ICALL(RT_33, "GetCallingConventionFromFunctionPointerInternal", ves_icall_RuntimeType_GetCallingConventionFromFunctionPointerInternal))
 HANDLES(RT_2, "GetConstructors_native", ves_icall_RuntimeType_GetConstructors_native, GPtrArray_ptr, 2, (MonoQCallTypeHandle, guint32))
+HANDLES(RT_34, "TestArray_native", ves_icall_RuntimeType_TestArray_Native, GPtrArray_ptr,  0, ())
+HANDLES(RT_35, "TestArrayRaw_native", ves_icall_RuntimeType_TestArray_Raw_Native, gpointer,  0, ())
+
 HANDLES(RT_30, "GetCorrespondingInflatedMethod", ves_icall_RuntimeType_GetCorrespondingInflatedMethod, MonoReflectionMethod, 2, (MonoQCallTypeHandle, MonoReflectionMethod))
 HANDLES(RT_21, "GetDeclaringMethod", ves_icall_RuntimeType_GetDeclaringMethod, void, 2, (MonoQCallTypeHandle, MonoObjectHandleOnStack))
 HANDLES(RT_22, "GetDeclaringType", ves_icall_RuntimeType_GetDeclaringType, void, 2, (MonoQCallTypeHandle, MonoObjectHandleOnStack))

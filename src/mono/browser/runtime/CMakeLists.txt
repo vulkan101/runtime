@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(mono-wasm-runtime C)
+include (CheckTypeSize)
 
 option(DISABLE_THREADS "defined if the build does NOT support multithreading" ON)
 option(ENABLE_JS_INTEROP_BY_VALUE "defined when JS interop without pointers to managed objects" OFF)
@@ -15,8 +16,8 @@ set_target_properties(dotnet.native PROPERTIES COMPILE_FLAGS ${CONFIGURATION_EMC
 
 target_link_libraries(dotnet.native
     PRIVATE
-    ${ICU_LIB_DIR}/libicuuc.a
-    ${ICU_LIB_DIR}/libicui18n.a
+    #${ICU_LIB_DIR}/libicuuc.a
+    #${ICU_LIB_DIR}/libicui18n.a
     ${MONO_ARTIFACTS_DIR}/libmono-component-hot_reload-static.a
     ${MONO_ARTIFACTS_DIR}/libmono-component-debugger-static.a
     ${MONO_ARTIFACTS_DIR}/libmono-component-diagnostics_tracing-stub-static.a
@@ -50,4 +51,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
                         COMMENT "Stripping debug symbols from dotnet.native.wasm using wasm-opt")
 endif()
 
+if(CONFIGURATION_EMCC_FLAGS)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CONFIGURATION_EMCC_FLAGS}")
+endif()
+message(STATUS "CONFIGURE CMAKE_C_FLAGS: ${CMAKE_C_FLAGS}")
+check_type_size("void*" SIZEOF_VOID_P)
 configure_file(wasm-config.h.in include/wasm/wasm-config.h)

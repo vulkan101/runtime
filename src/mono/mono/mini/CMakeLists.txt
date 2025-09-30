@@ -239,28 +239,44 @@ set(interp_sources
     interp/interp.c
     interp/interp-intrins.h
     interp/interp-intrins.c
+    interp/interp-icalls.h
+    interp/interp-icalls.c    
     interp/mintops.h
     interp/mintops.c
     interp/transform.c
     interp/transform-opt.c
     interp/tiering.h
-    interp/tiering.c
-    interp/jiterpreter.c
+    interp/tiering.c    
     interp/interp-pgo.c)
 set(interp_simd_sources
     interp/interp-simd.c)
 set(interp_stub_sources
     interp-stubs.c)
+set(jiterp_sources 
+    interp/jiterpreter.c)
+set(jiterp_stub_sources
+    interp/jiterpreter_stubs.c)
+
+message("MRH_LOGGING_MINI: DISABLE_INTERPRETER '${DISABLE_INTERPRETER}'")
+message("MRH_LOGGING_MINI: DISABLE_JITERPRETER '${DISABLE_JITERPRETER}'")
 
 if(NOT DISABLE_INTERPRETER)
-  if(HOST_WASM)
-    set(mini_interp_sources ${interp_sources})
-  else()
-    set(mini_interp_sources ${interp_sources} ${interp_simd_sources})
-  endif()
+  if(HOST_WASM)    
+      set(mini_interp_sources ${interp_sources})    
+  else()    
+      set(mini_interp_sources ${interp_sources} ${interp_simd_sources})    
+  endif()      
 else()
 set(mini_interp_sources ${interp_stub_sources})
 endif()
+
+if(NOT DISABLE_JITERPRETER)
+    list(APPEND mini_interp_sources ${jiterp_sources})
+else()
+    message("MRH_LOGGING: adding jiterp stub sources '${jiterp_stub_sources}'")
+    list(APPEND mini_interp_sources ${jiterp_stub_sources})
+endif()
+
 
 if(ENABLE_INTERP_LIB)
 add_library(mono-ee-interp STATIC "${interp_sources}")

@@ -226,6 +226,12 @@ check_type_size("long" SIZEOF_LONG)
 check_type_size("long long" SIZEOF_LONG_LONG)
 check_type_size("size_t" SIZEOF_SIZE_T)
 
+message("MRH_LOGGING: PROCESSOR_ARCHITECTURE : ${PROCESSOR_ARCHITECTURE}")
+message("MRH_LOGGING: SIZEOF_VOID_P is set to ${SIZEOF_VOID_P}")
+message("MRH_LOGGING: HAVE_SIZEOF_VOID_P: ${HAVE_SIZEOF_VOID_P}")
+message("MRH_LOGGING: SIZEOF_VOID_P: ${SIZEOF_VOID_P}")
+message("MRH_LOGGING: SIZEOF_VOID_P_CODE: ${SIZEOF_VOID_P_CODE}")
+
 #
 # Override checks
 #

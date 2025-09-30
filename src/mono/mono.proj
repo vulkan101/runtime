@@ -406,11 +406,24 @@ JS_ENGINES = [NODE_JS]
 
   <!-- Mono runtime build -->
   <Target Name="BuildMonoRuntime">
+
+    <Message Text="MRH_LOGGING: Building mono runtime" Importance="high" />
+    <Message Text="MRH_LOGGING: _MonoLLVMHostArchitecture $(_MonoLLVMHostArchitecture)" Importance="high" />
+    <Message Text="MRH_LOGGING: BuildArchitecture $(BuildArchitecture)" Importance="high" />
+    <Message Text="MRH_LOGGING: TargetArchitecture $(TargetArchitecture)" Importance="high" />
+    
+    
+    
     <PropertyGroup Condition="'$(MonoUseLLVMPackage)' == 'true'">
       <_MonoLLVMTargetArchitecture Condition="'$(TargetArchitecture)' == 'wasm'">$(BuildArchitecture)</_MonoLLVMTargetArchitecture>
       <_MonoLLVMTargetArchitecture Condition="'$(TargetArchitecture)' != 'wasm'">$(TargetArchitecture)</_MonoLLVMTargetArchitecture>
       <_MonoLLVMHostArchitecture Condition="'$(AotHostArchitecture)' != ''">$(AotHostArchitecture)</_MonoLLVMHostArchitecture>
     </PropertyGroup>
+
+    <Message Text="MRH_LOGGING: _MonoLLVMHostArchitecture $(_MonoLLVMHostArchitecture)" Importance="high" />
+    <Message Text="MRH_LOGGING: _MonoLLVMTargetArchitecture $(_MonoLLVMTargetArchitecture)" Importance="high" />
+
+    
     <ItemGroup>
       <_MonoCMakeArgs Condition="'$(_MonoUseNinja)' == 'true'" Include="-G Ninja"/>
       <_MonoCMakeArgs Include="-DCMAKE_INSTALL_PREFIX=&quot;$(MonoObjDir.Replace('\','/'))out&quot;"/>
@@ -559,18 +572,44 @@ JS_ENGINES = [NODE_JS]
       <_MonoMinimal Condition="'$(Configuration)' == 'Release' and '$(MonoEnableAssertMessages)' != 'true'">$(_MonoMinimal),assert_messages</_MonoMinimal>
       <_MonoMinimal Condition="'$(WasmEnableThreads)' != 'true'">$(_MonoMinimal),threads</_MonoMinimal>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(TargetsBrowser)' == 'true' or '$(TargetsWasi)' == 'true'">
+      <MonoAotAbi Condition="'$(TargetArchitecture)' == 'wasm' and '$(WasmEnableMemory64)' == 'true'">wasm64-unknown-none</MonoAotAbi>
+    </PropertyGroup>
+    <Message Condition="'$(TargetArchitecture)' == 'wasm' and '$(BuildArchitecture)' == 'x64'" Text="MRH_LOGGING: MonoAotAbi: $(MonoAotAbi)" Importance="high" />
+    
     <ItemGroup Condition="'$(TargetsBrowser)' == 'true' or '$(TargetsWasi)' == 'true'">
       <_MonoCMakeArgs Include="-DENABLE_MINIMAL=jit,sgen_major_marksweep_conc,sgen_split_nursery,sgen_gc_bridge,sgen_toggleref,sgen_debug_helpers,sgen_binary_protocol,logging,interpreter,qcalls$(_MonoMinimal)"/>
       <_MonoCMakeArgs Include="-DENABLE_INTERP_LIB=1"/>
       <_MonoCMakeArgs Include="-DDISABLE_ICALL_TABLES=1"/>
       <_MonoCMakeArgs Include="-DENABLE_ICALL_EXPORT=1"/>
       <_MonoCMakeArgs Include="-DENABLE_LAZY_GC_THREAD_CREATION=1"/>
-      <_MonoCMakeArgs Include="-DENABLE_WEBCIL=1"/>
+      <_MonoCMakeArgs Include="-DENABLE_WEBCIL=1"/>      
+      <_MonoCMakeArgs Include="-DDISABLE_JITERPRETER=1"/>
+      <_MonoCMakeArgs Include="-DMEMORY64=1" Condition="'$(WasmEnableMemory64)' == 'true'"  />
       <_MonoCFLAGS Condition="'$(WasmEnableThreads)' == 'true'" Include="-pthread"/>
       <_MonoCFLAGS Condition="'$(WasmEnableThreads)' == 'true'" Include="-D_GNU_SOURCE=1" />
+	    <_MonoCFLAGS Condition="'$(WasmEnableMemory64)' == 'true'" Include="-DMEMORY64=1" />
+      <_MonoCFLAGS Condition="'$(WasmEnableMemory64)' == 'true'" Include="-g" />      
+      <_MonoCFLAGS Condition="'$(WasmEnableMemory64)' == 'true'" Include="-O0" />
+      <_MonoCFLAGS Condition="'$(WasmEnableMemory64)' == 'true'" Include="--target=wasm64" />      
       <_MonoCXXFLAGS Condition="'$(WasmEnableThreads)' == 'true'" Include="-pthread"/>
       <_MonoCXXFLAGS Condition="'$(WasmEnableThreads)' == 'true'" Include="-D_GNU_SOURCE=1" />
+	    <_MonoCXXFLAGS Condition="'$(WasmEnableMemory64)' == 'true'" Include="-DMEMORY64=1" />
+	    <_MonoCXXFLAGS Condition="'$(WasmEnableMemory64)' == 'true'" Include="--target=wasm64" />
+      <_MonoCXXFLAGS Condition="'$(WasmEnableMemory64)' == 'true'" Include="-g" />
+      <_MonoBuildEnv Condition="'$(WasmEnableMemory64)' == 'true'" Include="TARGET_BUILD_ARCH=wasm64" />      
     </ItemGroup>
+
+    <PropertyGroup Condition="'$(TargetsBrowser)' == 'true' AND '$(Configuration)' == 'Release'">
+      <WasmNativeDebugSymbols>true</WasmNativeDebugSymbols>
+      <WasmNativeStrip>false</WasmNativeStrip>
+      <EnableAggressiveTrimming>false</EnableAggressiveTrimming>
+      <InvariantTimezone>true</InvariantTimezone>
+      <WasmEmitSymbolMap>true</WasmEmitSymbolMap>
+      <EmccEnableAssertions>true</EmccEnableAssertions>
+      <PublishTrimmed>false</PublishTrimmed>
+    </PropertyGroup>
+    
     <!-- Browser specific options -->
     <ItemGroup Condition="'$(TargetsBrowser)' == 'true'">
       <_MonoCMakeArgs Include="-DENABLE_LLVM_RUNTIME=1"/>
@@ -788,7 +827,8 @@ JS_ENGINES = [NODE_JS]
 
   <!-- Build AOT cross compiler (if available) -->
   <Target Name="BuildMonoCross" Condition="'$(BuildMonoAOTCrossCompiler)' == 'true'" DependsOnTargets="BuildMonoRuntime">
-
+    <Message Text="MRH_LOGGING: Building mono cross" Importance="high" />
+    
     <!-- If you don't specify the AOT host, assume it's the build machine -->
     <PropertyGroup>
       <AotHostArchitecture Condition="'$(AotHostArchitecture)' == ''">$(BuildArchitecture)</AotHostArchitecture>
@@ -850,7 +890,7 @@ JS_ENGINES = [NODE_JS]
       <MonoAOTCMakeArgs Condition="'$(AotHostArchitecture)' == 'x64'" Include="-DCMAKE_OSX_ARCHITECTURES=x86_64" />
       <MonoAOTCMakeArgs Condition="'$(AotHostArchitecture)' == 'arm64'" Include="-DCMAKE_OSX_ARCHITECTURES=arm64" />
       <MonoAOTCMakeArgs Include="-DCMAKE_OSX_DEPLOYMENT_TARGET=$(macOSVersionMin)" />
-      <MonoAOTCMakeArgs Include="-DENABLE_ICALL_EXPORT=1"/>
+      <MonoAOTCMakeArgs Include="-DENABLE_ICALL_EXPORT=1"/>      
       <_MonoAOTCFLAGS Condition="'$(AotHostArchitecture)' == 'arm64'" Include="-arch arm64" />
       <_MonoAOTCXXFLAGS Condition="'$(AotHostArchitecture)' == 'arm64'" Include="-arch arm64" />
       <!-- Force running as arm64 even when invoked from an x64 msbuild process -->
@@ -859,11 +899,27 @@ JS_ENGINES = [NODE_JS]
 
     <!-- WASM specific options -->
     <PropertyGroup Condition="'$(TargetsBrowser)' == 'true' or '$(TargetsWasi)' == 'true'">
-      <MonoAotAbi Condition="'$(TargetsBrowser)' == 'true'">wasm32-unknown-none</MonoAotAbi>
+      <MonoAotAbi Condition="'$(TargetsBrowser)' == 'true' and '$(WasmEnableMemory64)' != 'true'">wasm32-unknown-none</MonoAotAbi>
+      <MonoAotAbi Condition="'$(TargetsBrowser)' == 'true' and '$(WasmEnableMemory64)' == 'true'">wasm64-unknown-none</MonoAotAbi>
       <MonoAotAbi Condition="'$(TargetsWasi)' == 'true'">wasm32-unknown-wasip2</MonoAotAbi>
       <_ForceRelease Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(TargetArchitecture)' == 'wasm' and '$(Configuration)' == 'Debug'">true</_ForceRelease>
     </PropertyGroup>
 
+    <ItemGroup Condition="'$(TargetsBrowser)' == 'true' or '$(TargetsWasi)' == 'true'">
+      <MonoAOTCMakeArgs Include="-DDISABLE_JITERPRETER=1"/>
+      <_MonoAOTCFLAGS Condition="'$(WasmEnableThreads)' == 'true'" Include="-pthread -D_GNU_SOURCE=1" />
+      <_MonoAOTCFLAGS Condition="'$(WasmEnableMemory64)' == 'true'" Include="--target=wasm64 -DMEMORY64=1 -g -O0" />
+      <_MonoAOTCPPFLAGS Condition="'$(WasmEnableThreads)' == 'true'" Include="-pthread -D_GNU_SOURCE=1"/>
+      <_MonoAOTCPPFLAGS Condition="'$(WasmEnableMemory64)' == 'true'" Include="-DMEMORY64=1 --target=wasm64 -g -O0" />
+      <_MonoAOTCXXFLAGS Condition="'$(WasmEnableThreads)' == 'true'" Include="-pthread -D_GNU_SOURCE=1"/>
+      <_MonoAOTCXXFLAGS Condition="'$(WasmEnableMemory64)' == 'true'" Include="-DMEMORY64=1 --target=wasm64 -g -O0" />
+      <MonoAOTCMakeArgs Condition="'$(WasmEnableMemory64)' == 'true'" Include="TARGET_BUILD_ARCH=wasm64" />
+    </ItemGroup>
+    
+    <Message Text="MRH_LOGGING: AotHostOS is set to: $(AotHostOS)" Importance="high" />
+    <Message Text="MRH_LOGGING: Set flags with wasm64 target" Importance="high" Condition="'$(TargetsBrowser)' == 'true' and '$(WasmEnableMemory64)' == 'true'" />
+
+    
     <!-- Windows specific options -->
     <ItemGroup Condition="'$(AotHostOS)' == 'windows'">
       <_MonoAOTCPPFLAGS Include="-DHOST_WIN32" />
