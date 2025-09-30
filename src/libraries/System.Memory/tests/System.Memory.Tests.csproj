@@ -4,6 +4,7 @@
     <TestRuntime>true</TestRuntime>
     <IncludeRemoteExecutor>true</IncludeRemoteExecutor>
     <TargetFramework>$(NetCoreAppCurrent)</TargetFramework>
+    <WasmXHarnessMonoArgs>--setenv=MH_LOG_VERBOSITY=0</WasmXHarnessMonoArgs>
   </PropertyGroup>
 
   <ItemGroup>

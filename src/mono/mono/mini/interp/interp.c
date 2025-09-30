@@ -3532,7 +3532,7 @@ mono_interp_leave (InterpFrame* parent_frame)
 	 */
 	//MH_LOG_INDENT();
 	//MH_LOG("Calling do_icall_wrapper for mono_thread_get_undeniable_exception\n");
-	do_icall_wrapper (&frame, NULL, MINT_ICALLSIG_V_P, &tmp_sp, &tmp_sp, (gpointer)mono_thread_get_undeniable_exception, FALSE, &gc_transitions);
+	do_icall_wrapper (&frame, NULL, SIZEOF_VOID_P == 4 ? MINT_ICALLSIG_V_4 : MINT_ICALLSIG_V_8, &tmp_sp, &tmp_sp, (gpointer)mono_thread_get_undeniable_exception, FALSE, &gc_transitions);
 	//MH_LOG("..Finished calling do_icall_wrapper for mono_thread_get_undeniable_exception\n");
 	//MH_LOG_UNINDENT();
 	return (MonoException*)tmp_sp.data.p;
@@ -4192,7 +4192,7 @@ main_loop:
 			frame->state.ip = ip + 8;
 			
 			if (imethod->method)
-				MH_LOG ("Calling native method %s with signature %s\n", mono_method_full_name (imethod->method, TRUE), mono_signature_full_name (csignature));
+				MH_LOG ("Calling native method %s with signature %s", mono_method_full_name (imethod->method, TRUE), mono_signature_full_name (csignature));
 			ves_pinvoke_method (imethod, csignature, (MonoFuncV)code, context, frame, (stackval*)(locals + ip [1]), (stackval*)(locals + ip [3]), save_last_error, cache, &gc_transitions);			
 			EXCEPTION_CHECKPOINT;
 			CHECK_RESUME_STATE (context);
@@ -6447,8 +6447,7 @@ MINT_IN_CASE(MINT_BRTRUE_I8_SP) ZEROP_SP(gint64, !=); MINT_IN_BREAK;
 			MINT_IN_BREAK;
 		}
 		MINT_IN_CASE(MINT_GETCHR) {
-			MonoString *s = LOCAL_VAR (ip [2], MonoString*);
-			MH_LOGV(MH_LVL_VERBOSE, "MINT_GETCHR, %p", s);
+			MonoString *s = LOCAL_VAR (ip [2], MonoString*);			
 			NULL_CHECK (s);
 			int i32 = LOCAL_VAR (ip [3], int);
 			if (i32 < 0 || i32 >= mono_string_length_internal (s))
@@ -7625,7 +7624,7 @@ MINT_IN_CASE(MINT_BRTRUE_I8_SP) ZEROP_SP(gint64, !=); MINT_IN_BREAK;
 			(*(guint64*)(locals + (ip[1]))) = (*(guint64*)(locals + (ip[2])));
 			{
 				intptr_t result = (*(guint64*)(locals + (ip[1])));
-				MH_LOG("MINT_MOV_8: *(%p + %d) = *(%p + %d): %p", locals, ip[1], locals, ip[2], (void*)result);
+				MH_LOGV(MH_LVL_CRIPPLE, "MINT_MOV_8: *(%p + %d) = *(%p + %d): %p", locals, ip[1], locals, ip[2], (void*)result);
 			}
 			ip += 3;; 
 		MINT_IN_BREAK;

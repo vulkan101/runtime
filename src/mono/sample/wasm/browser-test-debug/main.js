@@ -55,7 +55,7 @@ try {
                 config.environmentVariables["MONO_LOG_MASK"] = "gc";
                 config.environmentVariables["MONO_GC_DEBUG"] = "8:gc_log.txt,print-gchandles,clear-nursery-at-gc";
                 // 1 or lower = None, 2 = info, 3  = debug, 4 = verbose, 5 = trace
-                config.environmentVariables["MH_LOG_VERBOSITY"] = "1";
+                config.environmentVariables["MH_LOG_VERBOSITY"] = "5";
             },
             preInit: () => { console.log('user code Module.preInit'); },
             preRun: () => { console.log('user code Module.preRun'); },
@@ -91,9 +91,16 @@ try {
     const exports = await getAssemblyExports(config.mainAssemblyName);
 
     document.getElementById("out").innerHTML = `NOT PASSED`;
-    
+    console.clear();
     setLogLevel(5);
-    await exports.Sample.Test.DoTestMethod();
+    await exports.Sample.Test.SetCurrentStackTrace_IncludedInExceptionStackTrace();
+    //await exports.Sample.Test.testGLStartup();
+    //await exports.Sample.Test.OffsetOf_NoSuchFieldName_ThrowsArgumentException();
+
+    //await exports.Sample.Test.TestBuffer();
+    //await exports.Sample.Test.TestUint();
+    //await exports.Sample.Test.TestMath();
+    // await exports.Sample.Test.DoTestMethod();
     setLogLevel(0);
     document.getElementById("out").innerHTML = `PASSED`;
 

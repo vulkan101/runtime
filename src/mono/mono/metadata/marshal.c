@@ -5692,7 +5692,7 @@ ves_icall_System_Runtime_InteropServices_Marshal_PtrToStructureHelper (gconstpoi
 	ptr_to_structure (src, dst, error);
 }
 
-int
+gpointer
 ves_icall_System_Runtime_InteropServices_Marshal_OffsetOf (MonoReflectionTypeHandle ref_type, MonoStringHandle field_name, MonoError *error)
 {
 	error_init (error);
@@ -5754,7 +5754,7 @@ ves_icall_System_Runtime_InteropServices_Marshal_OffsetOf (MonoReflectionTypeHan
 
 	MonoMarshalType *info = mono_marshal_load_type_info (klass);
 	MH_LOG("returning offset %d", info->fields [match_index].offset);
-	return info->fields [match_index].offset;
+	return GINT_TO_POINTER(info->fields [match_index].offset);
 }
 
 void

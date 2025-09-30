@@ -53,6 +53,29 @@ namespace Sample
             }
             throw new Exception($"AssertHelper.Throws failed. No exception was thrown. Expected exception of type {typeof(TException)}.");
         }
+        public static TException Throws<TException>(string? paramName, Action action) where TException : ArgumentException
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                if (ex is TException expected)
+                {
+                    if (paramName != null && !string.Equals(expected.ParamName, paramName, StringComparison.Ordinal))
+                    {
+                        throw new Exception(
+                            $"Assert.Throws failed. Expected ParamName: '{paramName}', but got: '{expected.ParamName}'.\nMessage: {ex.Message}", ex);
+                    }
+                    return expected;
+                }
+                throw new Exception(
+                    $"Assert.Throws failed. Expected exception of type {typeof(TException)}, but got {ex.GetType()}.\nMessage: {ex.Message}", ex);
+            }
+            throw new Exception(
+                $"Assert.Throws failed. No exception was thrown. Expected exception of type {typeof(TException)}.");
+        }
         public static void Contains<T>(T expected, IEnumerable<T> collection)
         {
             if (collection == null)
@@ -64,7 +87,13 @@ namespace Sample
             }
             throw new Exception($"AssertHelper.Contains failed. Expected item: {FormatIfArray(expected)} was not found in collection: {FormatIfArray(collection)}.");
         }
-
+        public static void Contains(string expectedSubstring, string? actualString, StringComparison comparisonType)
+        {
+            if (actualString == null)
+                throw new Exception("AssertHelper.Contains failed. Actual string is null.");
+            if (!actualString.Contains(expectedSubstring, comparisonType))
+                throw new Exception($"AssertHelper.Contains failed. Expected substring: \"{expectedSubstring}\" was not found in string: \"{actualString}\" (comparison: {comparisonType}).");
+        }
         public static void Contains(string expectedSubstring, string? actualString)
         {
             if (actualString == null)
