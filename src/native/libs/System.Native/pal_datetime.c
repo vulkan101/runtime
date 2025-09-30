@@ -30,23 +30,18 @@ extern bool mono_bundled_resources_get_data_resource_values (const char *id, con
 // since 00:00 01 January 1970 UTC (Unix epoch) 
 //
 int64_t SystemNative_GetSystemTimeAsTicks(void)
-{
-    printf("In SystemNative_GetSystemTimeAsTicks\n"); fflush(stdout);
-#if HAVE_CLOCK_REALTIME
-    printf("In SystemNative_GetSystemTimeAsTicks, using clock_gettime\n"); fflush(stdout);
+{    
+#if HAVE_CLOCK_REALTIME    
     struct timespec time;
     if (clock_gettime(CLOCK_REALTIME, &time) == 0)
     {
         return (int64_t)(time.tv_sec) * TICKS_PER_SECOND + (time.tv_nsec / NANOSECONDS_PER_TICK); 
     }
-#else
-    printf("In SystemNative_GetSystemTimeAsTicks, using gettimeofday\n"); fflush(stdout);
+#else    
     struct timeval time;
     if (gettimeofday(&time, NULL) == 0)
-    {
-        printf("called gettimeofday\n"); fflush(stdout);
-        int64_t result = (int64_t)(time.tv_sec) * TICKS_PER_SECOND + (time.tv_usec * TICKS_PER_MICROSECOND);
-        printf("Got result %lld\n", result); fflush(stdout);
+    {        
+        int64_t result = (int64_t)(time.tv_sec) * TICKS_PER_SECOND + (time.tv_usec * TICKS_PER_MICROSECOND);     
         return result; 
     }
 #endif
