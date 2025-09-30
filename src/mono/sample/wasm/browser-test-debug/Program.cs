@@ -14,6 +14,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Tests;
 using System.Globalization;
 using  System.SpanTests;
+using System.Runtime.ExceptionServices;
+
 namespace Sample
 {
     [StructLayout(LayoutKind.Sequential)]
@@ -41,7 +43,14 @@ namespace Sample
 
             return 0;
         }
-        
+        private static void ABCDEFGHIJKLMNOPQRSTUVWXYZ(Exception e)
+        {
+            Assert.Same(e, ExceptionDispatchInfo.SetCurrentStackTrace(e));
+        }
+
+        [LibraryImport("testGLStartup")]
+        public static partial void testGLStartup();
+
         public static async Task JsExportTaskOfInt(int value)
         {
             TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
@@ -444,7 +453,28 @@ namespace Sample
             Assert.Throws<ArgumentException>(() => Marshal.OffsetOf(typeof(NonExistField), "NonExistField"));
             Assert.Throws<ArgumentException>(() => Marshal.OffsetOf<NonExistField>("NonExistField"));
         }
+        [JSExport]
+        public static async Task SetCurrentStackTrace_IncludedInExceptionStackTrace()
+        {
+            Exception e;
 
+            e = new Exception();
+            ABCDEFGHIJKLMNOPQRSTUVWXYZ(e);
+            Assert.Contains(nameof(ABCDEFGHIJKLMNOPQRSTUVWXYZ), e.StackTrace, StringComparison.Ordinal);
+
+            e = new Exception();
+            ABCDEFGHIJKLMNOPQRSTUVWXYZ(e);
+            try { throw e; } catch { }
+            Assert.Contains(nameof(ABCDEFGHIJKLMNOPQRSTUVWXYZ), e.StackTrace, StringComparison.Ordinal);
+        }
+
+
+        [JSExport]
+        internal static void TestGL()
+        {
+            testGLStartup();
+        }
+        
         [JSExport]
         public static async Task DoTestMethod()
         {

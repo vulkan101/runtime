@@ -87,7 +87,13 @@ namespace Sample
             }
             throw new Exception($"AssertHelper.Contains failed. Expected item: {FormatIfArray(expected)} was not found in collection: {FormatIfArray(collection)}.");
         }
-
+        public static void Contains(string expectedSubstring, string? actualString, StringComparison comparisonType)
+        {
+            if (actualString == null)
+                throw new Exception("AssertHelper.Contains failed. Actual string is null.");
+            if (!actualString.Contains(expectedSubstring, comparisonType))
+                throw new Exception($"AssertHelper.Contains failed. Expected substring: \"{expectedSubstring}\" was not found in string: \"{actualString}\" (comparison: {comparisonType}).");
+        }
         public static void Contains(string expectedSubstring, string? actualString)
         {
             if (actualString == null)
