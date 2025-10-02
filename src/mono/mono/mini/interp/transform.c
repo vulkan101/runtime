@@ -2981,6 +2981,11 @@ interp_get_icall_sig (MonoMethodSignature *sig)
 	}
 	// returnType of 0 == void
 	int returnType = GET_PARAM_SIZE(sig->ret);
+	if (returnType == 0 && sig->ret->type != MONO_TYPE_VOID) 
+	{
+		MH_LOGV(MH_LVL_TRACE, "will return MINT_ICALLSIG_MAX: return type %s was encoded as %d. p->type value is %d. rejecting because it's not a pointer type.", mono_type_get_name(sig->ret), returnType, sig->ret->type);
+		return MINT_ICALLSIG_MAX; 
+	}	
 	MH_LOGV(MH_LVL_TRACE, "return type %s encoded as %d. p->type value is %d", mono_type_get_name(sig->ret), returnType, sig->ret->type);
 	op = encode_signature(params, sig->param_count, returnType);
 	return op;
