@@ -103,6 +103,7 @@ try {
     console.debug(`result: ${result}`);
     setLogLevel(3);
     console.clear();
+    //exports.Sample.Test.DoTestMethod();
     exports.Sample.Test.TestGL();
 
     const meaning = exports.Sample.Test.TestMeaning();

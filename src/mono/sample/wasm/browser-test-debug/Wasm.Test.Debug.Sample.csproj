@@ -9,6 +9,9 @@
     <WasmEmitSymbolMap>true</WasmEmitSymbolMap>
     <EmccEnableAssertions>true</EmccEnableAssertions>
     <EmccEnvironment>web,worker</EmccEnvironment>
+    
+    <EmccFlags>$(EmccFlags) -gsource-map -sMAX_WEBGL_VERSION=2</EmccFlags>
+    
     <!-- add OpenGL emulation -->
     <EmccExtraLDFlags>-s LEGACY_GL_EMULATION=1 -lGL -lSDL -lidbfs.js</EmccExtraLDFlags>
     <!-- just to prove we don't do JS eval() -->
@@ -27,12 +30,16 @@
     <TargetFramework>net10.0</TargetFramework>    
     <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>    
   </PropertyGroup>
+  <!--allow testing of unsafe code-->
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
   
   <!-- PDB file output -->
-  <PropertyGroup>
+  <!--<PropertyGroup>
     <DebugType>portable</DebugType>
     <DebugSymbols>true</DebugSymbols>
-  </PropertyGroup>
+  </PropertyGroup>-->
   
   <ItemGroup>
     <WasmExtraFilesToDeploy Include="main.js" />

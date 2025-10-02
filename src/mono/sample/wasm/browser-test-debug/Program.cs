@@ -48,7 +48,14 @@ namespace Sample
             Assert.Same(e, ExceptionDispatchInfo.SetCurrentStackTrace(e));
         }
 
-        [LibraryImport("testGLStartup")]
+        [LibraryImport("fibonacci")]
+        public static partial int Fibonacci(int n);
+
+        [LibraryImport("fibonacci")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        public static unsafe partial bool TestBoolReturn(int input, int* outValue);
+
+        [LibraryImport("fibonacci")]
         public static partial void testGLStartup();
 
         public static async Task JsExportTaskOfInt(int value)
@@ -468,10 +475,20 @@ namespace Sample
             Assert.Contains(nameof(ABCDEFGHIJKLMNOPQRSTUVWXYZ), e.StackTrace, StringComparison.Ordinal);
         }
 
-
+        [JSExport]
+        internal static unsafe void TestBool()
+        {
+            Console.WriteLine("Calling testbool");
+            int retVal = 0;
+            bool value = TestBoolReturn(1, &retVal);
+            Console.WriteLine($"TestBoolReturn(1) returned {value} with out param {retVal}");
+        }
         [JSExport]
         internal static void TestGL()
         {
+            Console.WriteLine("Calling testGLStartup");
+            var val = Fibonacci(8);
+            Console.WriteLine($"Fibonacci(8)={val}");
             testGLStartup();
         }
         
@@ -480,6 +497,10 @@ namespace Sample
         {
             //await JavaScriptTestHelper.InitializeAsync();
             //const bool doCollect = true;
+
+            var val = Fibonacci(8);
+            Console.WriteLine($"Fibonacci(8)={val}");
+            //testGLStartup();
             string myTestString = "Hello from .NET";
             unsafe
             {

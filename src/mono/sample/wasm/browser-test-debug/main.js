@@ -93,14 +93,16 @@ try {
     document.getElementById("out").innerHTML = `NOT PASSED`;
     console.clear();
     setLogLevel(5);
-    await exports.Sample.Test.SetCurrentStackTrace_IncludedInExceptionStackTrace();
-    //await exports.Sample.Test.testGLStartup();
+    //await exports.Sample.Test.SetCurrentStackTrace_IncludedInExceptionStackTrace();
+    await exports.Sample.Test.TestBool();
+    //await exports.Sample.Test.DoTestMethod();
+    //await exports.Sample.Test.TestGL();
     //await exports.Sample.Test.OffsetOf_NoSuchFieldName_ThrowsArgumentException();
 
     //await exports.Sample.Test.TestBuffer();
     //await exports.Sample.Test.TestUint();
     //await exports.Sample.Test.TestMath();
-    // await exports.Sample.Test.DoTestMethod();
+    
     setLogLevel(0);
     document.getElementById("out").innerHTML = `PASSED`;
 
