@@ -13,6 +13,7 @@ import { mono_log_warn } from "./logging";
 import { viewOrCopy, utf8ToStringRelaxed, stringToUTF8 } from "./strings";
 import { wrap_as_cancelable } from "./cancelable-promise";
 import { assert_js_interop } from "./invoke-js";
+import { normalizePointer } from "./marshal";
 
 const wasm_ws_pending_send_buffer = Symbol.for("wasm ws_pending_send_buffer");
 const wasm_ws_pending_send_buffer_offset = Symbol.for("wasm ws_pending_send_buffer_offset");
@@ -31,7 +32,6 @@ const wasm_ws_receive_status_ptr = Symbol.for("wasm ws_receive_status_ptr");
 
 const ws_send_buffer_blocking_threshold = 65536;
 const emptyBuffer = new Uint8Array();
-
 function verifyEnvironment () {
     if (ENVIRONMENT_IS_SHELL) {
         throw new Error("WebSockets are not supported in shell JS engine.");
@@ -118,9 +118,10 @@ export function ws_wasm_create (uri: string, sub_protocols: string[] | null, rec
             // send close to any pending receivers, to wake them
             const receive_promise_queue = ws[wasm_ws_pending_receive_promise_queue];
             receive_promise_queue.drain((receive_promise_control) => {
-                setI32(receive_status_ptr, 0); // count
-                setI32(<any>receive_status_ptr + 4, 2); // type:close
-                setI32(<any>receive_status_ptr + 8, 1);// end_of_message: true
+                const normalized_response_ptr = normalizePointer(receive_status_ptr);
+                setI32(normalized_response_ptr, 0); // count
+                setI32(<any>normalized_response_ptr + 4, 2); // type:close
+                setI32(<any>normalized_response_ptr + 8, 1);// end_of_message: true
                 receive_promise_control.resolve();
             });
         } catch (error: any) {
@@ -168,7 +169,7 @@ export function ws_wasm_open (ws: WebSocketExtension): Promise<WebSocketExtensio
     return open_promise_control.promise;
 }
 
-export function ws_wasm_send (ws: WebSocketExtension, buffer_ptr: VoidPtr, buffer_length: number, message_type: number, end_of_message: boolean): Promise<void> | null {
+export function ws_wasm_send (ws: WebSocketExtension, buffer_ptr: VoidPtr | bigint, buffer_length: number, message_type: number, end_of_message: boolean): Promise<void> | null {
     mono_assert(!!ws, "ERR17: expected ws instance");
 
     if (ws[wasm_ws_pending_error]) {
@@ -183,7 +184,7 @@ export function ws_wasm_send (ws: WebSocketExtension, buffer_ptr: VoidPtr, buffe
         return resolvedPromise();
     }
 
-    const buffer_view = new Uint8Array(localHeapViewU8().buffer, <any>buffer_ptr, buffer_length);
+    const buffer_view = new Uint8Array(localHeapViewU8().buffer, <any>normalizePointer(buffer_ptr), buffer_length);
     const whole_buffer = web_socket_send_buffering(ws, buffer_view, message_type, end_of_message);
 
     if (!end_of_message || !whole_buffer) {
@@ -193,8 +194,9 @@ export function ws_wasm_send (ws: WebSocketExtension, buffer_ptr: VoidPtr, buffe
     return web_socket_send_and_wait(ws, whole_buffer);
 }
 
-export function ws_wasm_receive (ws: WebSocketExtension, buffer_ptr: VoidPtr, buffer_length: number): Promise<void> | null {
+export function ws_wasm_receive (ws: WebSocketExtension, buffer_ptr: VoidPtr | bigint, buffer_length: number): Promise<void> | null {
     mono_assert(!!ws, "ERR18: expected ws instance");
+    const normalized_buffer_ptr = <number>normalizePointer(buffer_ptr);
 
     if (ws[wasm_ws_pending_error]) {
         return rejectedPromise(ws[wasm_ws_pending_error]);
@@ -203,9 +205,10 @@ export function ws_wasm_receive (ws: WebSocketExtension, buffer_ptr: VoidPtr, bu
     // we can't quickly return if wasm_ws_close_received==true, because there could be pending messages
     if (ws[wasm_ws_is_aborted]) {
         const receive_status_ptr = ws[wasm_ws_receive_status_ptr];
-        setI32(receive_status_ptr, 0); // count
-        setI32(<any>receive_status_ptr + 4, 2); // type:close
-        setI32(<any>receive_status_ptr + 8, 1);// end_of_message: true
+        const normalized_response_ptr = normalizePointer(receive_status_ptr);
+        setI32(normalized_response_ptr, 0); // count
+        setI32(<any>normalized_response_ptr + 4, 2); // type:close
+        setI32(<any>normalized_response_ptr + 8, 1);// end_of_message: true
         return resolvedPromise();
     }
 
@@ -215,22 +218,23 @@ export function ws_wasm_receive (ws: WebSocketExtension, buffer_ptr: VoidPtr, bu
     if (receive_event_queue.getLength()) {
         mono_assert(receive_promise_queue.getLength() == 0, "ERR20: Invalid WS state");
 
-        web_socket_receive_buffering(ws, receive_event_queue, buffer_ptr, buffer_length);
+        web_socket_receive_buffering(ws, receive_event_queue, <any>normalized_buffer_ptr, buffer_length);
 
         return resolvedPromise();
     }
 
     if (ws[wasm_ws_close_received]) {
         const receive_status_ptr = ws[wasm_ws_receive_status_ptr];
-        setI32(receive_status_ptr, 0); // count
-        setI32(<any>receive_status_ptr + 4, 2); // type:close
-        setI32(<any>receive_status_ptr + 8, 1);// end_of_message: true
+        const normalized_response_ptr = normalizePointer(receive_status_ptr);
+        setI32(normalized_response_ptr, 0); // count
+        setI32(<any>normalized_response_ptr + 4, 2); // type:close
+        setI32(<any>normalized_response_ptr + 8, 1);// end_of_message: true
         return resolvedPromise();
     }
 
     const { promise, promise_control } = createPromiseController<void>();
     const receive_promise_control = promise_control as ReceivePromiseControl;
-    receive_promise_control.buffer_ptr = buffer_ptr;
+    receive_promise_control.buffer_ptr = <any>normalized_buffer_ptr;
     receive_promise_control.buffer_length = buffer_length;
     receive_promise_queue.enqueue(receive_promise_control);
 
@@ -400,7 +404,8 @@ function web_socket_receive_buffering (ws: WebSocketExtension, event_queue: Queu
     const count = Math.min(buffer_length, event.data.length - event.offset);
     if (count > 0) {
         const sourceView = event.data.subarray(event.offset, event.offset + count);
-        const bufferView = new Uint8Array(localHeapViewU8().buffer, <any>buffer_ptr, buffer_length);
+        const normalized_ptr = normalizePointer(buffer_ptr);
+        const bufferView = new Uint8Array(localHeapViewU8().buffer, <any>normalized_ptr, buffer_length);
         bufferView.set(sourceView, 0);
         event.offset += count;
     }
@@ -409,9 +414,10 @@ function web_socket_receive_buffering (ws: WebSocketExtension, event_queue: Queu
         event_queue.dequeue();
     }
     const response_ptr = ws[wasm_ws_receive_status_ptr];
-    setI32(response_ptr, count);
-    setI32(<any>response_ptr + 4, event.type);
-    setI32(<any>response_ptr + 8, end_of_message);
+    const normalized_response_ptr = normalizePointer(response_ptr);
+    setI32(normalized_response_ptr, count);
+    setI32(<any>normalized_response_ptr + 4, event.type);
+    setI32(<any>normalized_response_ptr + 8, end_of_message);
 }
 
 function web_socket_send_buffering (ws: WebSocketExtension, buffer_view: Uint8Array, message_type: number, end_of_message: boolean): Uint8Array | string | null {
