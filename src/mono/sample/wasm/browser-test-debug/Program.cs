@@ -52,6 +52,9 @@ namespace Sample
         public static partial int Fibonacci(int n);
 
         [LibraryImport("fibonacci")]
+        public static partial void TestMyHandle();
+
+        [LibraryImport("fibonacci")]
         [return: MarshalAs(UnmanagedType.I1)]
         public static unsafe partial bool TestBoolReturn(int input, int* outValue);
 
@@ -475,6 +478,36 @@ namespace Sample
             Assert.Contains(nameof(ABCDEFGHIJKLMNOPQRSTUVWXYZ), e.StackTrace, StringComparison.Ordinal);
         }
 
+        //public static string bad(string filename) => Path.Combine("ZipTestData", "badzipfiles", filename);
+        //public static string compat(string filename) => Path.Combine("ZipTestData", "compat", filename);
+        //public static string strange(string filename) => Path.Combine("ZipTestData", "StrangeZipFiles", filename);
+        //public static string zfile(string filename) => Path.Combine("ZipTestData", "refzipfiles", filename);
+        //public static string zfolder(string filename) => Path.Combine("ZipTestData", "refzipfolders", filename);
+        //public static string zmodified(string filename) => Path.Combine("ZipTestData", "modified", filename);
+
+        //public static void ExtractToDirectoryOverwrite()
+        //{
+        //    string folderName = zfolder("normal");
+
+        //    using TempDirectory tempFolder = new(GetTestFilePath());
+        //    using Stream source = File.OpenRead(zfile("normal.zip"));
+        //    ZipFile.ExtractToDirectory(source, tempFolder.Path, overwriteFiles: false);
+        //    source.Position = 0;
+        //    Assert.Throws<IOException>(() => ZipFile.ExtractToDirectory(source, tempFolder.Path /* default false */));
+        //    source.Position = 0;
+        //    Assert.Throws<IOException>(() => ZipFile.ExtractToDirectory(source, tempFolder.Path, overwriteFiles: false));
+        //    source.Position = 0;
+        //    ZipFile.ExtractToDirectory(source, tempFolder.Path, overwriteFiles: true);
+
+        //    DirsEqual(tempFolder.Path, folderName);
+        //}
+
+        //[JSExport]
+        //internal static unsafe void TestZip()
+        //{
+        //    ExtractToDirectoryOverwrite();
+        //}
+
         [JSExport]
         internal static unsafe void TestBool()
         {
@@ -491,7 +524,13 @@ namespace Sample
             Console.WriteLine($"Fibonacci(8)={val}");
             testGLStartup();
         }
-        
+
+        [JSExport]
+        internal static void TestBitfield()
+        {
+            TestMyHandle();
+        }
+
         [JSExport]
         public static async Task DoTestMethod()
         {

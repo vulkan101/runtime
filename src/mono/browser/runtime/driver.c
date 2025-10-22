@@ -404,9 +404,9 @@ mono_wasm_string_from_utf16_ref (const mono_unichar2 * chars, int length, MonoSt
 	}
 	MONO_EXIT_GC_UNSAFE;
     //FIXME: debug only
-    MH_LOG("Input length %d, result length: %d", length, mono_string_length(*result));
+    MH_LOGV(MH_LVL_DEBUG, "Input length %d, result length: %d", length, mono_string_length(*result));
     char* charString = mono_string_to_utf8(*result);
-    MH_LOG("Converted string with length %d to: %s", length, charString);
+    MH_LOGV(MH_LVL_DEBUG, "Converted string with length %d to: %s", length, charString);
 }
 
 EMSCRIPTEN_KEEPALIVE int
@@ -436,9 +436,9 @@ mono_wasm_set_main_args (int argc, char* argv[])
 EMSCRIPTEN_KEEPALIVE d_handle
 mono_wasm_strdup (const char *s)
 {
-    MH_LOG("duplicating: %s (%p)", s, s);
+    //MH_LOGV(MH_LVL_DEBUG, "duplicating: %s (%p)", s, s);
     char* result = strdup(s);
-    MH_LOG("duplicated: %s (%p)", result, result);
+    MH_LOGV(MH_LVL_DEBUG, "duplicated: %s (%p) -> %s (%p)", s, s, result, result);
 	return (d_handle)result;
 }
 

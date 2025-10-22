@@ -2152,7 +2152,11 @@ function jiterpreter_allocate_table (type: JiterpreterTable, base: number, size:
     // HACK: Always populate the first slot
     try {
         // wasm64 requires bigint, but types expect number
-        (wasmTable.set as any)(firstIndexWasm, fillValue);
+        if (fillValue && typeof fillValue === "function") {
+            (wasmTable.set as any)(firstIndexWasm, fillValue);
+        } else {
+            (wasmTable.set as any)(firstIndexWasm, null);
+        }
     } catch (e) {
         wasmTable.set(firstIndex, fillValue);
     }
@@ -2176,6 +2180,9 @@ function jiterpreter_allocate_table (type: JiterpreterTable, base: number, size:
 // we need to ensure we only ever initialize tables once on each js worker.
 let jiterpreter_tables_allocated = false;
 export function jiterpreter_allocate_tables () {
+    // HACK - jiterpreter disabled
+    jiterpreter_tables_allocated = true;
+
     if (jiterpreter_tables_allocated)
         return;
     jiterpreter_tables_allocated = true;

@@ -4139,6 +4139,9 @@ main_loop:
 				cmethod = mono_interp_get_imethod (mono_marshal_get_native_wrapper (cmethod->method, FALSE, FALSE));
 			}
 
+			if (cmethod->method)
+				MH_LOGV (MH_LVL_VERBOSE, "Calling MINT_CALLI method %s", mono_method_full_name (cmethod->method, TRUE));
+
 			return_offset = ip [1];
 			call_args_offset = ip [3];
 
@@ -4161,6 +4164,9 @@ main_loop:
 			/* for calls, have ip pointing at the start of next instruction */
 			frame->state.ip = ip + 7;
 
+			if (frame->imethod && frame->imethod->method)
+				MH_LOGV (MH_LVL_VERBOSE, "Calling fast native method %s", mono_method_full_name (frame->imethod->method, TRUE));
+
 			do_icall_wrapper (frame, csignature, icall_sig, ret, args, target_ip, save_last_error, &gc_transitions);
 			EXCEPTION_CHECKPOINT;
 			CHECK_RESUME_STATE (context);
@@ -4173,9 +4179,11 @@ main_loop:
 			return_offset = ip [1];
 			guchar* code = LOCAL_VAR (ip [2], guchar*);
 			call_args_offset = ip [3];
-
+			
 			// FIXME push/pop LMF
 			cmethod = mono_interp_get_native_func_wrapper (frame->imethod, csignature, code);
+			if (cmethod->method)
+				MH_LOGV (MH_LVL_VERBOSE, "Calling dynamic native method %s with signature %s", mono_method_full_name (cmethod->method, TRUE), mono_signature_full_name (csignature));
 
 			ip += 5;
 			goto jit_call;
@@ -4192,7 +4200,7 @@ main_loop:
 			frame->state.ip = ip + 8;
 			
 			if (imethod->method)
-				MH_LOG ("Calling native method %s with signature %s", mono_method_full_name (imethod->method, TRUE), mono_signature_full_name (csignature));
+				MH_LOGV (MH_LVL_VERBOSE, "Calling native method %s with signature %s", mono_method_full_name (imethod->method, TRUE), mono_signature_full_name (csignature));
 			ves_pinvoke_method (imethod, csignature, (MonoFuncV)code, context, frame, (stackval*)(locals + ip [1]), (stackval*)(locals + ip [3]), save_last_error, cache, &gc_transitions);			
 			EXCEPTION_CHECKPOINT;
 			CHECK_RESUME_STATE (context);

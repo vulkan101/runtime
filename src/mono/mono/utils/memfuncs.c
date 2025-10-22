@@ -54,7 +54,7 @@
 #endif
 
 #include "memfuncs.h"
-
+#include <mono/metadata/mh_log.h>
 #define ptr_mask ((sizeof (void*) - 1))
 #define _toi(ptr) ((size_t)ptr)
 #define unaligned_bytes(ptr) (_toi(ptr) & ptr_mask)
@@ -242,6 +242,8 @@ mono_gc_memmove_aligned (void *dest, const void *src, size_t size)
 void
 mono_gc_memmove_atomic (void *dest, const void *src, size_t size)
 {
+	MH_LOGV(MH_LVL_DEBUG, "moving from %p to %p size %zu", src, dest, size);
+
 	if (unaligned_bytes (_toi (dest) | _toi (src)))
 		memmove (dest, src, size);
 	else

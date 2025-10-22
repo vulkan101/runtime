@@ -94,7 +94,9 @@ try {
     console.clear();
     setLogLevel(5);
     //await exports.Sample.Test.SetCurrentStackTrace_IncludedInExceptionStackTrace();
-    await exports.Sample.Test.TestBool();
+    await exports.Sample.Test.TestBitfield();
+    //await exports.Sample.Test.TestZip();
+    //await exports.Sample.Test.TestBool();
     //await exports.Sample.Test.DoTestMethod();
     //await exports.Sample.Test.TestGL();
     //await exports.Sample.Test.OffsetOf_NoSuchFieldName_ThrowsArgumentException();

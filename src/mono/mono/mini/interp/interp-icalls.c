@@ -94,7 +94,7 @@ stackval_from_data (MonoType *type, stackval *result, const void *data, gboolean
 {
 	MH_LOG_INDENT();
 	intptr_t data_ptr = *(intptr_t *)data;
-	MH_LOG("Converting data to stackval for type %s: ,value as intptr_t is %p", mono_type_get_name (type), (void*)data_ptr);
+	MH_LOGV(MH_LVL_VERBOSE, "Converting data to stackval for type %s: ,value as intptr_t is %p", mono_type_get_name (type), (void*)data_ptr);
 	
 //	memset(result, 0, sizeof(stackval));
 	log_mono_type(type);
@@ -154,7 +154,7 @@ stackval_from_data (MonoType *type, stackval *result, const void *data, gboolean
 	case MONO_TYPE_CLASS:
 	case MONO_TYPE_OBJECT:
 	case MONO_TYPE_ARRAY:
-		MH_LOG("Assigned pointer value: %p",  result->data.p);
+		MH_LOGV(MH_LVL_VERBOSE, "Assigned pointer value: %p",  result->data.p);
 		result->data.p = *(gpointer*)data;
 		break;
 	case MONO_TYPE_VALUETYPE:
