@@ -114,6 +114,7 @@ namespace System.Net.Http
 
         public static unsafe Task FetchBytes(JSObject httpController, string uri, string[] headerNames, string[] headerValues, string[] optionNames, object?[] optionValues, MemoryHandle pinBuffer, int bodyLength)
         {
+            Console.WriteLine($"[FetchBytes] bufferPtr: 0x{((ulong)pinBuffer.Pointer):X}, bodyLength: {bodyLength}");
             return FetchBytes(httpController, uri, headerNames, headerValues, optionNames, optionValues, (IntPtr)pinBuffer.Pointer, bodyLength);
         }
 
