@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -125,6 +126,7 @@ export function http_wasm_transform_stream_close (controller: HttpController): C
 
 export function http_wasm_fetch_stream (controller: HttpController, url: string, header_names: string[], header_values: string[], option_names: string[], option_values: any[]): ControllablePromise<void> {
     if (BuildConfiguration === "Debug") commonAsserts(controller);
+    console.log(`Fetching stream for: ${url}`);
     const transformStream = new TransformStream<Uint8Array, Uint8Array>();
     controller.streamWriter = transformStream.writable.getWriter();
     mute_unhandledrejection(controller.streamWriter.closed);
@@ -135,6 +137,8 @@ export function http_wasm_fetch_stream (controller: HttpController, url: string,
 
 export function http_wasm_fetch_bytes (controller: HttpController, url: string, header_names: string[], header_values: string[], option_names: string[], option_values: any[], bodyPtr: VoidPtr, bodyLength: number): ControllablePromise<void> {
     if (BuildConfiguration === "Debug") commonAsserts(controller);
+
+    console.log(`bufferPtr: ${bodyPtr}, bufferLength: ${bodyLength}`);
     // the bodyPtr is pinned by the caller
     const view = new Span(bodyPtr, bodyLength, MemoryViewType.Byte);
     const copy = view.slice() as Uint8Array;
@@ -177,14 +181,19 @@ export function http_wasm_fetch (controller: HttpController, url: string, header
         controller.responseHeaderNames = [];
         controller.responseHeaderValues = [];
         if (controller.response.headers && (<any>controller.response.headers).entries) {
+            console.log("Got response for url: " + url);
+            console.log("Header : value pairs {");
             const entries: Iterable<string[]> = (<any>controller.response.headers).entries();
             for (const pair of entries) {
+                console.log("    " + pair[0] + " = " + pair[1]);
                 controller.responseHeaderNames.push(pair[0]);
                 controller.responseHeaderValues.push(pair[1]);
             }
+            console.log("}");
         }
     }).catch(() => {
         // ignore
+        console.error("http fetch cancelled or failed");
     });
     return controller.responsePromise;
 }
