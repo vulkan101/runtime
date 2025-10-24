@@ -7,7 +7,7 @@
   <title>Wasm Browser Test Debug Sample</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' http://localhost:37703;" />
   <script type='module' src="./main.js"></script>
   <script type='module' src="./dotnet.js"></script>
   <link rel="preload" href="./dotnet.boot.js" as="fetch" crossorigin="use-credentials">

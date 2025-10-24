@@ -4,17 +4,18 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.InteropServices.JavaScript.Tests;
-using System.Threading.Tasks;
-using System.Security;
-using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Tests;
-using System.Globalization;
+using System.Security;
 using  System.SpanTests;
-using System.Runtime.ExceptionServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Sample
 {
@@ -32,9 +33,11 @@ namespace Sample
             throw new NotImplementedException();
         }
     }
+
     public partial class Test
     {
         private char[] _largeBuffer = new char[4096];
+        public static HTTPServerConfigs httpServerConfigs = new HTTPServerConfigs();
 
         public static async Task<int> Main(string[] args)
         {
@@ -61,6 +64,30 @@ namespace Sample
         [LibraryImport("fibonacci")]
         public static partial void testGLStartup();
 
+        public static async Task<string> loadJPopAsync(string jpopURI, CancellationToken cancellationToken)
+        {
+            bool piggybackedResponse = true;
+            return await HTTPRquestHelper.getJsonAsync(jpopURI, httpServerConfigs, piggybackedResponse, cancellationToken).ConfigureAwait(false);
+        }
+
+        public static async Task<byte[]> loadBufferAsync(string bufferURI, CancellationToken cancellationToken)
+        {
+            bool piggybackedResponse = true;
+            return await HTTPRquestHelper.getBufferAsync(bufferURI, httpServerConfigs, piggybackedResponse, cancellationToken).ConfigureAwait(false);
+        }
+
+        public static async void TestPopRequests()
+        {
+            Console.WriteLine("Starting TestPopRequests");
+            CancellationToken cancellationToken = CancellationToken.None;
+            string serverurl = "http://localhost:37703";
+
+            string blockDataFileName = "http://localhost:37703/popmeshes/arcticlng/arcticlng.common.jpop";
+            string blockDataTxt = await loadJPopAsync(blockDataFileName, cancellationToken);
+
+            Console.WriteLine($"Loaded block data: {blockDataTxt}");
+
+        }
         public static async Task JsExportTaskOfInt(int value)
         {
             TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
@@ -529,6 +556,13 @@ namespace Sample
         internal static void TestBitfield()
         {
             TestMyHandle();
+        }
+
+        [JSExport]
+        internal static void TestPop()
+        {
+            Console.WriteLine("Starting TestPop");
+            TestPopRequests();
         }
 
         [JSExport]

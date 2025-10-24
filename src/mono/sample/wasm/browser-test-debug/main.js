@@ -92,9 +92,9 @@ try {
 
     document.getElementById("out").innerHTML = `NOT PASSED`;
     console.clear();
-    setLogLevel(5);
+    setLogLevel(1);
     //await exports.Sample.Test.SetCurrentStackTrace_IncludedInExceptionStackTrace();
-    await exports.Sample.Test.TestBitfield();
+    await exports.Sample.Test.TestPop();
     //await exports.Sample.Test.TestZip();
     //await exports.Sample.Test.TestBool();
     //await exports.Sample.Test.DoTestMethod();
@@ -111,7 +111,7 @@ try {
 
     console.log('user code Module.onRuntimeInitialized');
     //printGcLog(Module);       
-    exit(exit_code);
+    //exit(exit_code);
 }
 catch (err) {
     //printGcLog(Module);
