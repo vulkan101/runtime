@@ -24,7 +24,6 @@
 #include <mono/metadata/mono-gc.h>
 #include <mono/metadata/object.h>
 #include <mono/metadata/debug-helpers.h>
-#include <mono/metadata/mh_log.h>
 
 // FIXME: unavailable in emscripten
 // #include <mono/metadata/gc-internals.h>
@@ -79,47 +78,19 @@ wasm_trace_logger (const char *log_domain, const char *log_level, const char *me
 }
 
 #ifndef SIZEOF_VOID_P
-#pragma message ("MRH_LOGGING_DRIVER: SIZEOF_VOID_P is undefined in driver.c") 
 #define SIZEOF_VOID_P @SIZEOF_VOID_P@
 #endif 
 
 #if SIZEOF_VOID_P == 4
-#pragma message ("MRH_LOGGING_DRIVER: SIZEOF_VOID_P is 4 in driver.c.")
 typedef uint32_t target_mword;
 typedef int32_t d_handle;
 #elif SIZEOF_VOID_P == 8
-#pragma message ("MRH_LOGGING_DRIVER: SIZEOF_VOID_P is 8 in driver.c")
 typedef uint64_t target_mword;
 typedef int64_t d_handle;
 #else
-#pragma message ("MRH_LOGGING_DRIVER: SIZEOF_VOID_P is still undefined in driver.c")
 typedef uint32_t target_mword;
 typedef int32_t d_handle;
 #endif
-
-
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-
-EMSCRIPTEN_KEEPALIVE void log_message(const char *filename, const char *message) {
-    FILE *file = fopen(filename, "a");  // Open for append, create if doesn't exist
-    if (file == NULL) {
-        perror("Error opening file");
-        return;
-    }
-
-    fprintf(file, "%s\n", message);  // Write message followed by newline
-    fclose(file);  // Close the file
-}
-
-EMSCRIPTEN_KEEPALIVE void debug_log(const char* msg) {
-    EM_ASM({
-        console.log(UTF8ToString($0));
-    }, msg);
-}
 
 typedef target_mword SgenDescriptor;
 typedef SgenDescriptor MonoGCDescriptor;
@@ -387,7 +358,6 @@ mono_wasm_string_from_utf16_ref (const mono_unichar2 * chars, int length, MonoSt
 		mono_gc_wbarrier_generic_store_atomic(result, NULL);
 	}
 	MONO_EXIT_GC_UNSAFE;    
-    char* charString = mono_string_to_utf8(*result);    
 }
 
 EMSCRIPTEN_KEEPALIVE int
