@@ -130,8 +130,7 @@ icall_table_lookup (MonoMethod *method, char *classname, char *methodname, char 
 
 	const char *image_name = mono_image_get_name (mono_class_get_image (mono_method_get_class (method)));
     
-#if defined(ICALL_TABLE_corlib)
-    MH_LOG("Looking for %s with ICALL_TABLE_corlib in %s", methodname, image_name);
+#if defined(ICALL_TABLE_corlib)    
 	if (!strcmp (image_name, "System.Private.CoreLib") || !strcmp (image_name, "Wasm.Advanced.Sample")) {
 		indexes = corlib_icall_indexes;
 		indexes_size = sizeof (corlib_icall_indexes) / 4;
@@ -140,8 +139,7 @@ icall_table_lookup (MonoMethod *method, char *classname, char *methodname, char 
 		assert (sizeof (corlib_icall_indexes [0]) == 4);
 	}
 #endif
-#ifdef ICALL_TABLE_System
-    MH_LOG("Looking for %s with ICALL_TABLE_System in %s", methodname, image_name);
+#ifdef ICALL_TABLE_System    
 	if (!strcmp (image_name, "System")) {
 		indexes = System_icall_indexes;
 		indexes_size = sizeof (System_icall_indexes) / 4;
@@ -152,16 +150,13 @@ icall_table_lookup (MonoMethod *method, char *classname, char *methodname, char 
 	assert (indexes);
 
 	void *p = bsearch (&token_idx, indexes, indexes_size, 4, compare_int);
-	if (!p) {
-        MH_LOGV(MH_LVL_INFO, "wasm: Unable to lookup icall: %s (%s)\n", methodname, mono_method_get_name (method));
-		return NULL;
+	if (!p) {        		
 		printf ("wasm: Unable to lookup icall: %s\n", mono_method_get_name (method));
 		exit (1);
 	}
 
 	uint32_t idx = (int*)p - indexes;
-	*out_flags = flags [idx];
-    MH_LOGV(MH_LVL_TRACE, "Will ICALL: %s %x %d %d\n", methodname, token, idx, (int)(funcs [idx]));
+	*out_flags = flags [idx];    
 	//printf ("ICALL: %s %x %d %d\n", methodname, token, idx, (int)(funcs [idx]));
 
 	return funcs [idx];
@@ -279,8 +274,7 @@ import_compare_name (const void *k1, const void *k2)
 static void*
 wasm_dl_symbol (void *handle, const char *name, char **err, void *user_data)
 {
-	assert (handle != sysglobal_native_handle);
-    MH_LOG(".");
+	assert (handle != sysglobal_native_handle);    
 #if WASM_SUPPORTS_DLOPEN
 	if (!wasm_dl_is_pinvoke_tables (handle)) {
 		return dlsym (handle, name);
@@ -289,25 +283,11 @@ wasm_dl_symbol (void *handle, const char *name, char **err, void *user_data)
 	PinvokeTable* index = (PinvokeTable*)handle;
 	PinvokeImport key = { name, NULL };
     PinvokeImport* result = (PinvokeImport *)bsearch(&key, index->imports, index->count, sizeof(PinvokeImport), import_compare_name);
-    if (!result) {
-        char buffer [512];
-        sprintf (buffer, "Symbol not found: %s", name);
-        *err = strdup(buffer);
-        MH_LOGV(MH_LVL_INFO, "Symbol not found: %s", name);        
+    if (!result) {        
         return NULL;
     }
     return result->func;
 }
-
-#ifndef ICALL_EXPORT
-#define ICALL_EXPORT
-#endif
-#define TEST_ICALL_SYMBOL_MAP
-#ifdef TEST_ICALL_SYMBOL_MAP
-const char*
-mono_lookup_icall_symbol_internal (gpointer func);
-ICALL_EXPORT int ves_icall_System_Environment_get_ProcessorCount ();
-#endif
 
 MonoDomain *
 mono_wasm_load_runtime_common (int debug_level, MonoLogCallback log_callback, const char *interp_opts)
@@ -350,18 +330,7 @@ mono_wasm_load_runtime_common (int debug_level, MonoLogCallback log_callback, co
 	}
 #endif    
 	init_icall_table ();
-
-    #define CHECK_SYMBOL_LOOKUP
-    #ifdef CHECK_SYMBOL_LOOKUP
-    {
-        printf("Checking mono_lookup_icall_symbol_internal\n");
-        const char *p  = mono_lookup_icall_symbol_internal (mono_lookup_icall_symbol_internal);
-	    printf ("%s\n", p ? p : "null");
-        printf("Checking ves_icall_System_Environment_get_ProcessorCount: ");
-	    p  = mono_lookup_icall_symbol_internal (ves_icall_System_Environment_get_ProcessorCount);
-	    printf ("%s\n", p ? p : "null");
-    }
-    #endif
+    
 	mono_ee_interp_init (interp_opts);
 	mono_marshal_ilgen_init();
 	mono_method_builder_ilgen_init ();
@@ -370,16 +339,14 @@ mono_wasm_load_runtime_common (int debug_level, MonoLogCallback log_callback, co
 	mono_trace_init ();
 	mono_trace_set_log_handler (log_callback, NULL);
 	domain = mono_jit_init_version ("mono", NULL);
-	mono_thread_set_main (mono_thread_current ());
-    printf("returning");
+	mono_thread_set_main (mono_thread_current ());    
 	return domain;
 }
 
 // TODO https://github.com/dotnet/runtime/issues/98366
 EMSCRIPTEN_KEEPALIVE MonoAssembly*
 mono_wasm_assembly_load (const char *name)
-{
-    MH_LOG(".");
+{    
 	MonoAssembly *res;
 	assert (name);
 	MonoImageOpenStatus status;
@@ -394,8 +361,7 @@ mono_wasm_assembly_load (const char *name)
 // TODO https://github.com/dotnet/runtime/issues/98366
 EMSCRIPTEN_KEEPALIVE MonoClass*
 mono_wasm_assembly_find_class (MonoAssembly *assembly, const char *namespace, const char *name)
-{
-    MH_LOG(".");
+{    
 	assert (assembly);
 	MonoClass *result;
 	MONO_ENTER_GC_UNSAFE;
@@ -407,8 +373,7 @@ mono_wasm_assembly_find_class (MonoAssembly *assembly, const char *namespace, co
 // TODO https://github.com/dotnet/runtime/issues/98366
 EMSCRIPTEN_KEEPALIVE MonoMethod*
 mono_wasm_assembly_find_method (MonoClass *klass, const char *name, int arguments)
-{
-    MH_LOG(".");
+{    
 	assert (klass);
 	MonoMethod* result;
 	MONO_ENTER_GC_UNSAFE;
@@ -419,8 +384,7 @@ mono_wasm_assembly_find_method (MonoClass *klass, const char *name, int argument
 
 MonoMethod*
 mono_wasm_get_method_matching (MonoImage *image, uint32_t token, MonoClass *klass, const char* name, int param_count)
-{
-    MH_LOG("mono_wasm_get_method_matching: %s.%s token=%x name=%s param_count=%d\n", mono_image_get_name (image), mono_class_get_name (klass), token, name, param_count);
+{    
 	MonoMethod *result = NULL;
 	MONO_ENTER_GC_UNSAFE;
 	MonoMethod *method = mono_get_method (image, token, klass);
