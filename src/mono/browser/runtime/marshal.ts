@@ -3,7 +3,6 @@
 
 import WasmEnableThreads from "consts:wasmEnableThreads";
 import isWasm64 from "consts:isWasm64";
-//const isWasm64 = true; // TODO: remove hardcoding!
 
 import { js_owned_gc_handle_symbol, teardown_managed_proxy } from "./gc-handles";
 import { Module, loaderHelpers, mono_assert, runtimeHelpers } from "./globals";
@@ -381,8 +380,7 @@ function get_arg_handle (arg: JSMarshalerArgument | JSMarshalerArguments, offset
 
 export function get_arg_js_handle (arg: JSMarshalerArgument): JSHandle {
     mono_assert(arg, "Null arg");
-    return get_arg_handle(arg, JSMarshalerArgumentOffsets.JSHandle) as any;
-    //return getI32(add_offset(arg, JSMarshalerArgumentOffsets.JSHandle)) as any;
+    return get_arg_handle(arg, JSMarshalerArgumentOffsets.JSHandle) as any;    
 }
 export function set_arg_proxy_context (arg: JSMarshalerArgument): void {
     if (!WasmEnableThreads) return;

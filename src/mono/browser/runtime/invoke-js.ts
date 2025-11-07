@@ -3,8 +3,8 @@
 
 import WasmEnableThreads from "consts:wasmEnableThreads";
 import BuildConfiguration from "consts:configuration";
-//import isWasm64 from "consts:isWasm64"
-const isWasm64 = true; // TODO: remove hardcoding!
+// FIXME: remove hardcoding!
+const isWasm64 = true;
 
 import { marshal_exception_to_cs, bind_arg_marshal_to_cs, marshal_task_to_cs } from "./marshal-to-cs";
 import { get_signature_argument_count, bound_js_function_symbol, get_sig, get_signature_version, get_signature_type, imported_js_function_symbol, get_signature_handle, get_signature_function_name, get_signature_module_name, is_receiver_should_free, get_caller_native_tid, get_sync_done_semaphore_ptr, get_arg } from "./marshal";
