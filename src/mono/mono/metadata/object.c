@@ -7204,7 +7204,6 @@ mono_ldstr_utf8 (MonoImage *image, guint32 idx, MonoError *error)
 char *
 mono_string_to_utf8 (MonoString *s)
 {
-	MH_LOGV(MH_LVL_VERBOSE, "Got here");
 	char *result;
 	MONO_ENTER_GC_UNSAFE;
 	ERROR_DECL (error);
@@ -7224,7 +7223,6 @@ mono_string_to_utf8 (MonoString *s)
 char *
 mono_utf16_to_utf8len (const gunichar2 *s, gsize slength, gsize *utf8_length, MonoError *error)
 {
-	MH_LOGV(MH_LVL_VERBOSE, "Got here");
 	MONO_REQ_GC_UNSAFE_MODE;
 
 	long written = 0;
@@ -7239,7 +7237,6 @@ mono_utf16_to_utf8len (const gunichar2 *s, gsize slength, gsize *utf8_length, Mo
 
 	if (!slength)
 		return g_strdup ("");
-	MH_LOGV(MH_LVL_VERBOSE, "Got string pointer %p", s);	
 	as = g_utf16_to_utf8 (s, (glong)slength, NULL, &written, &gerror);
 	*utf8_length = written;
 	if (gerror) {
@@ -7269,7 +7266,6 @@ mono_utf16_to_utf8len (const gunichar2 *s, gsize slength, gsize *utf8_length, Mo
 char *
 mono_utf16_to_utf8 (const gunichar2 *s, gsize slength, MonoError *error)
 {
-	MH_LOGV(MH_LVL_VERBOSE, "Got here");
 	gsize utf8_length = 0;
 	return mono_utf16_to_utf8len (s, slength, &utf8_length, error);
 }
@@ -7278,7 +7274,6 @@ char *
 mono_string_to_utf8_checked_internal (MonoString *s, MonoError *error)
 {
 	MONO_REQ_GC_UNSAFE_MODE;
-	MH_LOGV(MH_LVL_VERBOSE, "Got here");
 	error_init (error);
 
 	if (s == NULL)
@@ -7286,7 +7281,6 @@ mono_string_to_utf8_checked_internal (MonoString *s, MonoError *error)
 
 	if (!s->length)
 		return g_strdup ("");
-	MH_LOGV(MH_LVL_VERBOSE, "Got string pointer %p, length %d", s, s->length);
 	return mono_utf16_to_utf8 (mono_string_chars_internal (s), s->length, error);
 }
 
@@ -7294,7 +7288,6 @@ char *
 mono_string_to_utf8len (MonoStringHandle s, gsize *utf8len, MonoError *error)
 {
 	*utf8len = 0;
-	MH_LOGV(MH_LVL_VERBOSE, "Got string handle %p", MONO_HANDLE_RAW (s));
 	if (MONO_HANDLE_IS_NULL (s))
 		return NULL;
 
@@ -7326,7 +7319,6 @@ mono_string_to_utf8_checked (MonoString *string_obj, MonoError *error)
 char *
 mono_string_handle_to_utf8 (MonoStringHandle s, MonoError *error)
 {
-	MH_LOGV(MH_LVL_VERBOSE, "Got string handle %p", MONO_HANDLE_RAW (s));
 	return mono_string_to_utf8_checked_internal (MONO_HANDLE_RAW (s), error);
 }
 

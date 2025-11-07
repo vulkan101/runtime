@@ -15,7 +15,6 @@
 #include <mono/metadata/object.h>
 #include <mono/metadata/reflection.h>
 #include <mono/metadata/assembly.h>
-#include <mono/metadata/mh_log.h>
 
 #include <mono/jit/jit.h>
 

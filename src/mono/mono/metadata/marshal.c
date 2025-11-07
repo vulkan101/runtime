@@ -4734,15 +4734,13 @@ mono_marshal_get_synchronized_wrapper (MonoMethod *method)
 		cache = get_cache (&((MonoMethodInflated*)orig_method)->owner->wrapper_caches.synchronized_cache, mono_aligned_addr_hash, NULL);
 		res = check_generic_wrapper_cache (cache, orig_method, orig_method, method);		
 		if (res)
-			{
 			return res;
-			}
+			
 	} else {
 		cache = get_cache (&get_method_image (method)->wrapper_caches.synchronized_cache, mono_aligned_addr_hash, NULL);
-		if ((res = mono_marshal_find_in_cache (cache, method)))
-			{
+		if ((res = mono_marshal_find_in_cache (cache, method)))			
 			return res;
-			}
+			
 	}
 
 	sig = mono_metadata_signature_dup_full (get_method_image (method), mono_method_signature_internal (method));

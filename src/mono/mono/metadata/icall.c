@@ -4083,81 +4083,11 @@ ves_icall_RuntimeType_GetMethodsByName_native (MonoQCallTypeHandle type_handle, 
 }
 
 GPtrArray*
-ves_icall_RuntimeType_TestArray_Native(MonoError *error)
-{
-	GPtrArray* res = g_ptr_array_new ();
-	gpointer val1 = (gpointer)0x111;
-	gpointer val2 = (gpointer)0x222;
-	gpointer val3 = (gpointer)0x333;
-	gpointer val4 = (gpointer)0x444;
-
-	g_ptr_array_add (res, val1);
-	g_ptr_array_add (res, val2);
-	g_ptr_array_add (res, val3);
-	g_ptr_array_add (res, val4);
-	return res;
-}
-
-gpointer
-ves_icall_RuntimeType_TestArray_Raw_Native(MonoError *error)
-{
-	assert(sizeof(gpointer) == sizeof(gpointer_ptr));
-	assert(sizeof(gpointer) == 8);
-	//bypass GPtrArray
-	int numElems = 4;
-	
-#define MH_USE_GPTR_ARRAY 1
-#define MH_USER_INT64_ARRAY 0
-	#if(0)
-	int64_t *rawArray = malloc(numElems * sizeof(int64_t));
-	memset(rawArray, 0, numElems * sizeof(int64_t));
-	GPtrArray* res = g_ptr_array_new ();
-	gpointer val1 = (gpointer)0x111;
-	gpointer val2 = (gpointer)0x222;
-	gpointer val3 = (gpointer)0x333;
-	gpointer val4 = (gpointer)0x444;
-
-	g_ptr_array_add (res, val1);
-	g_ptr_array_add (res, val2);
-	g_ptr_array_add (res, val3);
-	g_ptr_array_add (res, val4);
-	return res->pdata;
-	#elif (MH_USER_INT64_ARRAY)
-	int64_t *rawArray = malloc(numElems * sizeof(int64_t));
-	memset(rawArray, 0, numElems * sizeof(int64_t));
-	int64_t val1 = (int64_t)0x111;
-	int64_t val2 = (int64_t)0x222;
-	int64_t val3 = (int64_t)0x333;
-	int64_t val4 = (int64_t)0x444;
-	rawArray[0] = val1;
-	rawArray[1] = val2;	
-	rawArray[2] = val3;	
-	rawArray[3] = val4;
-	#elif (MH_USE_GPTR_ARRAY)	
-	gpointer *rawArray = malloc(numElems * sizeof(gpointer));
-	memset(rawArray, 0, numElems * sizeof(gpointer));
-	gpointer val1 = (gpointer)0x111;
-	gpointer val2 = (gpointer)0x222;
-	gpointer val3 = (gpointer)0x333;
-	gpointer val4 = (gpointer)0x444;
-	rawArray[0] = val1;
-	rawArray[1] = val2;	
-	rawArray[2] = val3;	
-	rawArray[3] = val4;
-	#endif
-	// 8 digits for 4 byte value
-	return (gpointer)rawArray;
-	
-	
-}
-
-GPtrArray*
 ves_icall_RuntimeType_GetConstructors_native (MonoQCallTypeHandle type_handle, guint32 bflags, MonoError *error)
 {
 	MonoType *type = type_handle.type;
 	if (m_type_is_byref (type)) {
-		GPtrArray* res = g_ptr_array_new ();
-		return res;
+		return g_ptr_array_new ();
 	}
 	
 	MonoClass *startklass, *klass;
@@ -5184,9 +5114,7 @@ ves_icall_System_Reflection_RuntimeMethodInfo_GetMethodFromHandleInternalType_na
 	} else if (type)
 		klass = mono_class_from_mono_type_internal (type);
 	else
-		klass = method->klass;
-		mono_method_full_name (method, true), 
-		mono_class_full_name (klass));
+		klass = method->klass;		
 	return mono_method_get_object_handle (method, klass, error);
 }
 
@@ -7067,9 +6995,8 @@ mono_lookup_internal_call_full_with_flags (MonoMethod *method, gboolean warn_on_
 		locked = FALSE;
 
 		if (res)
-		{
 			goto exit;
-		}
+
 		if (warn_on_missing) {
 			g_warning ("cant resolve internal call to \"%s\" (tested without signature also)", mname);
 			g_print ("\nYour mono runtime and class libraries are out of sync.\n");

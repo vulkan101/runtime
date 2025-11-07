@@ -115,7 +115,6 @@ void
 g_ptr_array_add(GPtrArray *array, gpointer data)
 {	
 	g_assert (array);
-	g_assert(sizeof(gpointer) == 8);
 	g_ptr_array_grow((GPtrArrayPriv *)array, 1);
 	array->pdata[array->len++] = data;	
 }
