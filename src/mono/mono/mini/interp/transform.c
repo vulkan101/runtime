@@ -2823,7 +2823,7 @@ is_scalar_vtype_test(MonoType *type)
 }
 
 #define INTERP_TYPE_AS_PTR(tp) interp_type_as_ptr (tp)
-#define DEBUG_ENCODE_SIGNATURE 1
+#define DEBUG_ENCODE_SIGNATURE 0
 #define ENCODE_4BYTE 0b01
 #define ENCODE_8BYTE 0b10
 
@@ -2954,10 +2954,8 @@ interp_get_icall_sig (MonoMethodSignature *sig)
 			}
 			else
 				return MINT_ICALLSIG_MAX; // not a pointer type - double check			
-		}
-		else 
-	}
-	// returnType of 0 == void
+		}		
+	}	
 	int returnType = GET_PARAM_SIZE(sig->ret);
 	if (returnType == 0 && sig->ret->type != MONO_TYPE_VOID) 
 	{

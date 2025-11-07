@@ -182,12 +182,7 @@ method_exc_leave (MonoProfiler *prof, MonoMethod *method, MonoObject *exc)
 	if (!is_over) {
 		top_index = is_over ? MAX_STACK_DEPTH - 1 : top_stack_frame_index;
 		top_frame = &profiler_stack_frames[top_index];
-		//g_assertf(top_frame->method == method, "method_exc_leave: %d method mismatch top_frame %s != leave %s\n", top_stack_frame_index, mono_method_get_full_name (top_frame->method), mono_method_get_full_name (method));
-		if (top_frame->method != method) {		    
-		    if (strcmp(mono_method_get_full_name(top_frame->method), mono_method_get_full_name(method)) != 0) {
-			g_warning("method_exc_leave: %d method mismatch top_frame %s != leave %s\n", top_stack_frame_index, mono_method_get_full_name(top_frame->method), mono_method_get_full_name(method));
-		    }
-		}
+		g_assertf(top_frame->method == method, "method_exc_leave: %d method mismatch top_frame %s != leave %s\n", top_stack_frame_index, mono_method_get_full_name (top_frame->method), mono_method_get_full_name (method));		
 	}
 
 }
