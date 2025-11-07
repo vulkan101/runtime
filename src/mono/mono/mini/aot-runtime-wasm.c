@@ -165,9 +165,7 @@ compare_icall_tramp (const void *key, const void *elem)
 {
 	return strcmp (key, *(void**)elem);
 }
-static void 
-logCookie (int c_count, const char *cookie) {
-}
+
 gpointer
 mono_wasm_get_interp_to_native_trampoline (MonoMethodSignature *sig)
 {
@@ -196,8 +194,7 @@ mono_wasm_get_interp_to_native_trampoline (MonoMethodSignature *sig)
 	for (int i = 0; i < sig->param_count; ++i) {
 		cookie [offset + i] = type_to_c (sig->params [i], NULL);
 	}
-	logCookie(c_count, cookie);
-
+	
 	void *p = mono_wasm_interp_to_native_callback (cookie);
 	if (!p)
 		g_error ("CANNOT HANDLE INTERP ICALL SIG %s\n", cookie);

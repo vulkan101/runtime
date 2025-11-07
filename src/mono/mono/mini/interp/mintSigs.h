@@ -5,7 +5,7 @@ typedef enum {
 	SIG_PARAM_8B = 8,
 	SIG_PARAM_INVALID = 666
 } param_type_e;
-// this enum must fit in a unit16_t
+// this enum must fit in a uint16_t
 typedef enum {
 MINT_ICALLSIG_MAX = 55555, // just a recognisable large number
 MINT_ICALLSIG_V_V = 0,
