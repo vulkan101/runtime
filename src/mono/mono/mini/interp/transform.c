@@ -40,7 +40,6 @@
 #if HOST_BROWSER
 #include "jiterpreter.h"
 #endif
-#include "mono/metadata/mh_log.h"
 
 MonoInterpStats mono_interp_stats;
 
@@ -119,8 +118,7 @@ interp_add_ins_explicit (TransformData *td, int opcode, int len)
 		td->cbb->first_ins = new_inst;
 	td->cbb->last_ins = new_inst;
 	// We should delete this, but is currently used widely to set the args of an instruction
-	td->last_ins = new_inst;
-	//MH_LOG("adding instruction %s at offset %d", mono_interp_opname (opcode), td->current_il_offset);
+	td->last_ins = new_inst;	
 	return new_inst;
 }
 
@@ -445,8 +443,7 @@ interp_create_var_explicit (TransformData *td, MonoType *type, int size)
 	local->bb_index = -1;
 	local->ext_index = -1;
 
-	td->vars_size++;
-	//MH_LOG("Creating var of type %s at index %d, size %d", mono_type_full_name (type), td->vars_size - 1, size);
+	td->vars_size++;	
 	return td->vars_size - 1;
 
 }
@@ -1799,8 +1796,7 @@ interp_emit_ldelema (TransformData *td, MonoClass *array_class, MonoClass *check
 {
 	MonoClass *element_class = m_class_get_element_class (array_class);
 	int rank = m_class_get_rank (array_class);
-	int size = mono_class_array_element_size (element_class);
-	//MH_LOG("Emiting LDELEMA for %s, size %d\n", m_class_get_name (array_class), size);
+	int size = mono_class_array_element_size (element_class);	
 	gboolean bounded = m_class_get_byval_arg (array_class) ? m_class_get_byval_arg (array_class)->type == MONO_TYPE_ARRAY : FALSE;
 
 	td->sp -= rank + 1;
@@ -3135,8 +3131,7 @@ interp_inline_method (TransformData *td, MonoMethod *target_method, MonoMethodHe
 			td->aggressive_inlining = TRUE;
 	}
 	if (td->verbose_level)
-		g_print ("Inline start method %s.%s\n", m_class_get_name (target_method->klass), target_method->name);	
-	//MH_LOG("Inline start method %s.%s", m_class_get_name (target_method->klass), target_method->name);
+		g_print ("Inline start method %s.%s\n", m_class_get_name (target_method->klass), target_method->name);		
 	td->inline_depth++;	
 	ret = generate_code (td, target_method, header, generic_context, error);
 	td->inline_depth--;
@@ -5321,9 +5316,7 @@ generate_code (TransformData *td, MonoMethod *method, MonoMethodHeader *header, 
 	original_bb = bb = mono_basic_block_split (method, error, header);
 	goto_if_nok (error, exit);
 	g_assert (bb);
-	
-	//MH_LOG("Generating code for method %s", mono_method_full_name (method, TRUE));
-	
+			
 	td->il_code = header->code;
 	td->in_start = td->ip = header->code;
 	end = td->ip + header->code_size;
@@ -5459,10 +5452,7 @@ generate_code (TransformData *td, MonoMethod *method, MonoMethodHeader *header, 
 		arg_locals = (guint32*) g_malloc ((!!signature->hasthis + signature->param_count) * sizeof (guint32));
 		/* Allocate locals to store inlined method args from stack */
 		for (int i = signature->param_count - 1; i >= 0; i--) {
-			MonoType *type = get_type_from_stack (td->sp [-1].type, td->sp [-1].klass);
-
-			//MH_LOG("Creating local for inlined arg %d: %s", i, mono_type_full_name (type));
-
+			MonoType *type = get_type_from_stack (td->sp [-1].type, td->sp [-1].klass);			
 			local = interp_create_var (td, type);
 			arg_locals [i + !!signature->hasthis] = local;
 			store_local (td, local);
@@ -9981,8 +9971,7 @@ mono_interp_transform_method (InterpMethod *imethod, ThreadContext *context, Mon
 	if (mono_class_is_open_constructed_type (m_class_get_byval_arg (method->klass))) {
 		mono_error_set_invalid_operation (error, "%s", "Could not execute the method because the containing type is not fully instantiated.");
 		return;
-	}
-	//MH_LOG("transforming method %s", method->name);
+	}	
 	// g_printerr ("TRANSFORM(0x%016lx): begin %s::%s\n", mono_thread_current (), method->klass->name, method->name);
 	method_class_vt = mono_class_vtable_checked (imethod->method->klass, error);
 	return_if_nok (error);
