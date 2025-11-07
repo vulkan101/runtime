@@ -44,7 +44,6 @@
 #include <mono/jit/jit.h>
 #include <mono/jit/mono-private-unstable.h>
 
-#include <mono/metadata/mh_log.h>
 #include "wasm-config.h"
 #include "pinvoke.h"
 
@@ -100,8 +99,6 @@ mono_install_icall_table_callbacks (const MonoIcallTableCallbacks *cb);
 #endif
 #endif
 
-// Comment out FOR COMPILE:
-//#define LINK_ICALLS 
 
 #ifdef LINK_ICALLS
 
@@ -131,7 +128,7 @@ icall_table_lookup (MonoMethod *method, char *classname, char *methodname, char 
 	const char *image_name = mono_image_get_name (mono_class_get_image (mono_method_get_class (method)));
     
 #if defined(ICALL_TABLE_corlib)    
-	if (!strcmp (image_name, "System.Private.CoreLib") || !strcmp (image_name, "Wasm.Advanced.Sample")) {
+	if (!strcmp (image_name, "System.Private.CoreLib")) {
 		indexes = corlib_icall_indexes;
 		indexes_size = sizeof (corlib_icall_indexes) / 4;
 		flags = corlib_icall_flags;
@@ -150,7 +147,8 @@ icall_table_lookup (MonoMethod *method, char *classname, char *methodname, char 
 	assert (indexes);
 
 	void *p = bsearch (&token_idx, indexes, indexes_size, 4, compare_int);
-	if (!p) {        		
+	if (!p) {
+        return NULL;
 		printf ("wasm: Unable to lookup icall: %s\n", mono_method_get_name (method));
 		exit (1);
 	}
@@ -412,8 +410,7 @@ mono_wasm_get_method_matching (MonoImage *image, uint32_t token, MonoClass *klas
  */
 void
 mono_wasm_marshal_get_managed_wrapper (const char* assemblyName, const char* namespaceName, const char* typeName, const char* methodName, uint32_t token, int param_count)
-{
-    MH_LOG("mono_wasm_marshal_get_managed_wrapper: %s.%s.%s::%s token=%x param_count=%d\n", assemblyName, namespaceName, typeName, methodName, token, param_count);
+{    
 	MonoError error;
 	mono_error_init (&error);
 	MONO_ENTER_GC_UNSAFE;
