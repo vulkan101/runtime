@@ -136,8 +136,7 @@ foreach(source_file ${NATIVE_SOURCES})
     set_source_files_properties(${source_file} PROPERTIES LANGUAGE C)
 endforeach()
 
-if (CMAKE_USE_MEMORY64)
-    message("MRH_LOGGING: Building native libs with MEMORY64 enabled")
+if (CMAKE_USE_MEMORY64)    
     add_compile_options(--target=wasm64)    
 endif()
 

@@ -33,10 +33,10 @@ else()
 endif()
 
 if (BROTLI_EMSCRIPTEN AND "${CMAKE_C_FLAGS}" MATCHES "MEMORY64")
-    message("MRH_LOGGING BROTLI: Building native BROTLI with MEMORY64")    
+    message("BROTLI: Building native BROTLI with MEMORY64")    
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --target=wasm64")
 else()
-    message("MRH_LOGGING: BROTLI unable to set wasm64")
+    message("BROTLI: unable to set wasm64")
 endif()
 
 

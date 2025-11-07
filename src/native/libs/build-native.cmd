@@ -83,7 +83,6 @@ set __ExtraCmakeParams=%__ExtraCmakeParams% "-DCMAKE_USE_PTHREADS=%__usePThreads
 
 if %__useMemory64% == 1 (
     set __ExtraCmakeParams=%__ExtraCmakeParams% "-DCMAKE_USE_MEMORY64=1"
-    echo "MRH_LOGGING_CMD: set -DCMAKE_USE_MEMORY64, params now: !__ExtraCmakeParams!""
 )
 :: set __ExtraCmakeParams=%__ExtraCmakeParams% "-Wno-experimental"
 

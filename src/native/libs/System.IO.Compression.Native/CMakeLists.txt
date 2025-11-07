@@ -43,8 +43,7 @@ if (NOT CLR_CMAKE_TARGET_BROWSER AND NOT CLR_CMAKE_TARGET_WASI)
     )
 endif ()
 
-if (CLR_CMAKE_TARGET_BROWSER AND CMAKE_USE_MEMORY64)
-    message("MRH_LOGGING: Building native compression libs with MEMORY64 enabled and Browser targeted")
+if (CLR_CMAKE_TARGET_BROWSER AND CMAKE_USE_MEMORY64)    
     add_compile_options(--target=wasm64)
 endif()
 

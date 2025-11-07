@@ -2,15 +2,6 @@
 
 include(FetchContent)
 
-function(DUMP_CMAKE_VARIABLES)
-    message("MRH_LOGGING: DUMP_CMAKE_VARIABLES ZLIB-NG.CMAKE:")
-    get_cmake_property(_variableNames VARIABLES)
-    list (SORT _variableNames)
-    foreach (_variableName ${_variableNames})        
-            message(STATUS "${_variableName}=${${_variableName}}")        
-    endforeach()
-endfunction()
-
 FetchContent_Declare(
     fetchzlibng
     SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/zlib-ng")
@@ -39,13 +30,10 @@ if (CLR_CMAKE_TARGET_BROWSER OR CLR_CMAKE_TARGET_WASI)
       add_linker_flag(-pthread)
   endif()
 
-   if (CMAKE_USE_MEMORY64 OR USES_MEM64)      
-      message(STATUS "MRH_LOGGING: setting MEMORY64 in zlib-ng.make")
+   if (CMAKE_USE_MEMORY64 OR USES_MEM64)            
       add_definitions(-DMEMORY64)
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DMEMORY64")
-      add_compile_options(-DMEMORY64=1)
-    else()
-       DUMP_CMAKE_VARIABLES()
+      add_compile_options(-DMEMORY64=1)    
   endif()
 endif()
 
