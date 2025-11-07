@@ -11,7 +11,6 @@
 #include <mono/jit/mono-private-unstable.h>
 #include "interp/interp.h"
 #include "aot-runtime.h"
-#include <mono/metadata/mh_log.h>
 #ifdef HOST_WASM
 
 #if SIZEOF_VOID_P == 4

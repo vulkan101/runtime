@@ -34,6 +34,7 @@ import { runtimeList } from "./exports";
 import { nativeAbort, nativeExit } from "./run";
 import { replaceEmscriptenPThreadInit } from "./pthreads/worker-thread";
 
+//FIXME: remove hardcoding
 const ptrSize = 8;
 
 export async function configureRuntimeStartup (module: DotnetModuleInternal): Promise<void> {

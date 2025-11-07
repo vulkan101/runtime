@@ -96,7 +96,6 @@
 #include <emscripten.h>
 #endif
 
-#include <mono/metadata/MH_LOG.h>
 
 /* Arguments that are passed when invoking only a finally/filter clause from the frame */
 struct FrameClauseArgs {

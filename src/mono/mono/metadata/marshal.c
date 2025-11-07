@@ -77,7 +77,6 @@ MONO_PRAGMA_WARNING_POP()
 #include <errno.h>
 #include "icall-decl.h"
 #include "icall-signatures.h"
-#include <mono/metadata/mh_log.h>
 static void
 mono_string_utf16len_to_builder (MonoStringBuilderHandle sb, const gunichar2 *text, gsize len, MonoError *error);
 

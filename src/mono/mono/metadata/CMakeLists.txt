@@ -99,8 +99,7 @@ set(metadata_common_sources
     metadata-update.c
     method-builder.h
     method-builder-internals.h
-    method-builder.c
-    mh_log.c
+    method-builder.c    
     mono-basic-block.c
     mono-basic-block.h
     mono-config.c

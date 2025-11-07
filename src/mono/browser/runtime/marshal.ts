@@ -380,7 +380,7 @@ function get_arg_handle (arg: JSMarshalerArgument | JSMarshalerArguments, offset
 
 export function get_arg_js_handle (arg: JSMarshalerArgument): JSHandle {
     mono_assert(arg, "Null arg");
-    return get_arg_handle(arg, JSMarshalerArgumentOffsets.JSHandle) as any;    
+    return get_arg_handle(arg, JSMarshalerArgumentOffsets.JSHandle) as any;
 }
 export function set_arg_proxy_context (arg: JSMarshalerArgument): void {
     if (!WasmEnableThreads) return;

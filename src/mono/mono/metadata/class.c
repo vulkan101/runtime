@@ -52,7 +52,6 @@
 #include <mono/utils/checked-build.h>
 // for dn_simdhash_ght_t
 #include "../native/containers/dn-simdhash-specializations.h"
-#include <mono/metadata/mh_log.h>
 MonoStats mono_stats;
 
 /* Statistics */

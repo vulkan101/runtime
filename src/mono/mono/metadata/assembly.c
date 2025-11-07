@@ -44,7 +44,6 @@
 #include <mono/utils/mono-os-mutex.h>
 #include <mono/metadata/mono-private-unstable.h>
 #include <mono/metadata/webcil-loader.h>
-#include <mono/metadata/mh_log.h>
 
 #ifndef HOST_WIN32
 #include <sys/types.h>

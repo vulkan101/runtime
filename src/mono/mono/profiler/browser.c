@@ -25,7 +25,6 @@
 #include <mono/utils/mono-publib.h>
 #include <mono/jit/jit.h>
 #include <mono/metadata/profiler-private.h>
-#include <mono/metadata/mh_log.h>
 
 struct _MonoProfiler {
 	gboolean verbose;

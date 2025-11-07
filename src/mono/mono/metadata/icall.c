@@ -75,7 +75,6 @@
 #include <mono/metadata/handle.h>
 #include <mono/metadata/abi-details.h>
 #include <mono/metadata/loader-internals.h>
-#include <mono/metadata/mh_log.h>
 #include <mono/utils/monobitset.h>
 #include <mono/utils/mono-time.h>
 #include <mono/utils/mono-proclib.h>

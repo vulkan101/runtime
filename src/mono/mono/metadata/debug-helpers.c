@@ -21,7 +21,6 @@
 #include "mono/metadata/appdomain.h"
 #include "mono/metadata/abi-details.h"
 
-#include <mono/metadata/mh_log.h>
 
 #ifdef MONO_CLASS_DEF_PRIVATE
 /* Rationale: we want the functions in this file to work even when everything

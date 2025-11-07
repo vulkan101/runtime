@@ -190,8 +190,6 @@ export function stringToMonoStringRoot (string: string, result: WasmRoot<MonoStr
     if (WasmEnableThreads) return;
     result.clear();
 
-    //mono_log_debug("Have input string: " + string);
-
     if (string === null)
         return;
     else if (typeof (string) === "symbol")

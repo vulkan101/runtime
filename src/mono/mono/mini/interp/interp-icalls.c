@@ -1,5 +1,4 @@
 #include "interp-icalls.h"
-#include <mono/metadata/mh_log.h>
 #include <string.h>
 
 typedef gint32 I4;

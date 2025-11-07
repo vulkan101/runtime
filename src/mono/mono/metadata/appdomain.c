@@ -57,7 +57,6 @@
 #include <mono/utils/mono-threads.h>
 #include <mono/utils/w32api.h>
 #include <mono/metadata/components.h>
-#include <mono/metadata/mh_log.h>
 
 #ifdef HOST_WIN32
 #include <direct.h>
