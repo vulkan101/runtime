@@ -110,8 +110,7 @@ void bindings_initialize_internals (void)
 static MonoAssembly* _mono_wasm_assembly_load (char *assembly_name)
 {
 	assert (assembly_name);
-	MonoImageOpenStatus status;
-    MH_LOG("Got assembly name %s", assembly_name);
+	MonoImageOpenStatus status;    
 	MonoAssemblyName* aname = mono_assembly_name_new (assembly_name);
 	assert (aname);
 	MonoAssembly *res = mono_assembly_load (aname, NULL, &status);

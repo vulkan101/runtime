@@ -512,8 +512,6 @@ namespace System
                     i += sizeof(int) / sizeof(char);
                 }
             }
-#else
-            #error TARGET_64BIT is not defined
 #endif
 
             while (i < minLength)

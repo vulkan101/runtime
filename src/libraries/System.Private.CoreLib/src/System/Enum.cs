@@ -1571,7 +1571,6 @@ namespace System
 #if TARGET_32BIT
                          typeof(TStorage) == typeof(nuint) ||
                          typeof(TStorage) == typeof(nint) ||
-#error TARGET_64BIT is not defined
 #endif
                          typeof(TStorage) == typeof(int))
                 {
@@ -1585,8 +1584,6 @@ namespace System
 #if TARGET_64BIT
                          typeof(TStorage) == typeof(nuint) ||
                          typeof(TStorage) == typeof(nint) ||
-#else
-                    #error TARGET_64BIT is not defined
 #endif
                          typeof(TStorage) == typeof(long))
                 {

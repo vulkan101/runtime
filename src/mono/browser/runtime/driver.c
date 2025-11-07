@@ -104,22 +104,6 @@ typedef int32_t d_handle;
 #include <stdio.h>
 #include <stdlib.h>
 
-// I put these here just to make sure they have access to EMSCRIPTEN_KEEPALIVE
-EMSCRIPTEN_KEEPALIVE void MH_TestVoid()
-{    
-    printf("MH_TestVoid called\n");
-}
-
-// I put these here just to make sure they have access to EMSCRIPTEN_KEEPALIVE
-EMSCRIPTEN_KEEPALIVE void MH_SetLogVerbosity(int32_t level)
-{
-    printf("MH_LOG_verbosity_level set to %d\n", level);
-    const char* envVar = getenv("MH_LOG_VERBOSITY");
-    printf("Environment variable MH_LOG_VERBOSITY is: %s\n", envVar ? envVar : "empty");
-    mh_log_set_verbosity(level);
-    printf("Retrieved MH_LOG_VERBOSITY: %d\n", mh_log_get_verbosity());
-}
-
 EMSCRIPTEN_KEEPALIVE void log_message(const char *filename, const char *message) {
     FILE *file = fopen(filename, "a");  // Open for append, create if doesn't exist
     if (file == NULL) {
@@ -402,11 +386,8 @@ mono_wasm_string_from_utf16_ref (const mono_unichar2 * chars, int length, MonoSt
 	} else {
 		mono_gc_wbarrier_generic_store_atomic(result, NULL);
 	}
-	MONO_EXIT_GC_UNSAFE;
-    //FIXME: debug only
-    MH_LOG("Input length %d, result length: %d", length, mono_string_length(*result));
-    char* charString = mono_string_to_utf8(*result);
-    MH_LOG("Converted string with length %d to: %s", length, charString);
+	MONO_EXIT_GC_UNSAFE;    
+    char* charString = mono_string_to_utf8(*result);    
 }
 
 EMSCRIPTEN_KEEPALIVE int
@@ -435,10 +416,8 @@ mono_wasm_set_main_args (int argc, char* argv[])
 
 EMSCRIPTEN_KEEPALIVE d_handle
 mono_wasm_strdup (const char *s)
-{
-    MH_LOG("duplicating: %s (%p)", s, s);
-    char* result = strdup(s);
-    MH_LOG("duplicated: %s (%p)", result, result);
+{    
+    char* result = strdup(s);    
 	return (d_handle)result;
 }
 

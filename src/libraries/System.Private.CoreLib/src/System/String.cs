@@ -376,7 +376,6 @@ namespace System
                 return false;
             }
 #else
-#error TARGET_64BIT is not defined
             if ((uint)startIndex > (uint)Length || (uint)count > (uint)(Length - startIndex))
             {
                 slice = default;

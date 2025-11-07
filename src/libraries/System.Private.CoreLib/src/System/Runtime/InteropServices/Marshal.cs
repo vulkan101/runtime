@@ -356,7 +356,6 @@ namespace System.Runtime.InteropServices
 #if TARGET_64BIT
             return (nint)ReadInt64(ptr, ofs);
 #else // 32
-#error TARGET_64BIT is not defined
             return (nint)ReadInt32(ptr, ofs);
 #endif
         }
