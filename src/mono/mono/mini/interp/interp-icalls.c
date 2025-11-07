@@ -93,8 +93,7 @@ stackval_from_data (MonoType *type, stackval *result, const void *data, gboolean
 {
 	intptr_t data_ptr = *(intptr_t *)data;
 	
-//	memset(result, 0, sizeof(stackval));
-	log_mono_type(type);
+//	memset(result, 0, sizeof(stackval));	
 	if (m_type_is_byref (type)) {
 		result->data.p = *(gpointer*)data;
 		return;
@@ -201,9 +200,7 @@ static char * log_sig(MonoMethodSignature* sig)
 	offset += sprintf(buffer + offset, "_%s", sig->ret->type ==  MONO_TYPE_VOID ? "V" : (interp_type_as_ptr4(sig->ret) ? "4" : "8"));
 	return strdup(buffer);
 }
-static void log_op(MintICallSig op)
-{
-}
+
 void
 do_icall (MonoMethodSignature *sig, MintICallSig op, stackval *ret_sp, stackval *sp, gpointer ptr, gboolean save_last_error)
 {
@@ -2512,7 +2509,6 @@ do_icall (MonoMethodSignature *sig, MintICallSig op, stackval *ret_sp, stackval 
 	if (sig)
 	{
 		stackval_from_data(sig->ret, ret_sp, (char*)&ret_sp->data.p, sig->pinvoke && !sig->marshalling_disabled);
-	}
-	else
+	}	
 }
 

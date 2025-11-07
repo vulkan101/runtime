@@ -793,9 +793,7 @@ get_virtual_method_fast (InterpMethod *imethod, MonoVTable *vtable, int offset)
 
 static int
 stackval_to_data (MonoType *type, stackval *val, void *data, gboolean pinvoke)
-{	
-	log_mono_type (type);
-	
+{			
 	if (m_type_is_byref (type)) {
 		gpointer *p = (gpointer*)data;
 		*p = val->data.p;
@@ -1211,9 +1209,7 @@ initialize_arg_offsets (InterpMethod *imethod, MonoMethodSignature *csig)
 	}	
 	for (int i = 0; i < sig->param_count; i++) {
 		MonoType *type = sig->params [i];
-		int size, align;
-		log_mono_type(type);
-		log_mint_type(mono_mint_type (type));		
+		int size, align;		
 		size = mono_interp_type_size (type, mono_mint_type (type), &align);		
 		offset = ALIGN_TO (offset, align);
 		arg_offsets [index++] = offset;
@@ -1442,7 +1438,6 @@ retry:
 
 	return info;
 }
-#define DEBUG_MH 1
 static void
 build_args_from_sig (InterpMethodArguments *margs, MonoMethodSignature *sig, BuildArgsFromSigInfo *info, InterpFrame *frame)
 {
@@ -2772,9 +2767,7 @@ init_arglist (InterpFrame *frame, MonoMethodSignature *sig, stackval *sp, char *
 		
 	for (int i = sig->sentinelpos; i < sig->param_count; i++) {
 		int align, arg_size, sv_size;
-		arg_size = mono_type_stack_size (sig->params [i], &align);
-		log_mono_type(sig->params [i]);	
-
+		arg_size = mono_type_stack_size (sig->params [i], &align);		
 		arglist = (char*)ALIGN_PTR_TO (arglist, align);		
 		sv_size = stackval_to_data (sig->params [i], sp, arglist, FALSE);
 		arglist += arg_size;
@@ -4156,8 +4149,7 @@ main_loop:
 			gpointer *cache = (gpointer*)&frame->imethod->data_items [ip [7]];
 			/* for calls, have ip pointing at the start of next instruction */
 			frame->state.ip = ip + 8;
-			
-			if (imethod->method)
+						
 			ves_pinvoke_method (imethod, csignature, (MonoFuncV)code, context, frame, (stackval*)(locals + ip [1]), (stackval*)(locals + ip [3]), save_last_error, cache, &gc_transitions);			
 			EXCEPTION_CHECKPOINT;
 			CHECK_RESUME_STATE (context);
@@ -7072,10 +7064,7 @@ MINT_IN_CASE(MINT_BRTRUE_I8_SP) ZEROP_SP(gint64, !=); MINT_IN_BREAK;
 			MINT_IN_BREAK;
 		}
 		MINT_IN_CASE(MINT_LDPTR)
-			(*(gpointer*)(locals + (ip[1]))) = frame->imethod->data_items [ip [2]];
-			{
-				intptr_t result = (*(guint64*)(locals + (ip[1])));
-			}
+			LOCAL_VAR (ip [1], gpointer) = frame->imethod->data_items [ip [2]];			
 			ip += 3;
 			MINT_IN_BREAK;
 		MINT_IN_CASE(MINT_MONO_NEWOBJ)
@@ -7555,29 +7544,11 @@ MINT_IN_CASE(MINT_BRTRUE_I8_SP) ZEROP_SP(gint64, !=); MINT_IN_BREAK;
 		// These moves are used to store into the field of a local valuetype
 		// No sign extension is needed, we just move bytes from the execution
 		// stack, no additional conversion is needed.
-		MINT_IN_CASE(MINT_MOV_1) 
-			(*(gint8*)(locals + (ip[1]))) = (*(gint8*)(locals + (ip[2])));
-			ip += 3;
-		MINT_IN_BREAK;
+		MINT_IN_CASE(MINT_MOV_1) MOV(gint8, gint8); MINT_IN_BREAK;
 		MINT_IN_CASE(MINT_MOV_2) MOV(gint16, gint16); MINT_IN_BREAK;
 		// Normal moves between locals
-		MINT_IN_CASE(MINT_MOV_4) 
-			// TODO: this is hardcoded for x64
-			//assert(((uintptr_t)locals % 8) == 0 && "locals is not 8-byte aligned");
-			(*(guint32*)(locals + (ip[1]))) = (*(guint32*)(locals + (ip[2]))); 			
-			ip += 3;; 
-		MINT_IN_BREAK;
-		MINT_IN_CASE(MINT_MOV_8) 
-			// TODO: this is hardcoded for x64
-			assert(((uintptr_t)locals % 8) == 0 && "locals is not 8-byte aligned");
-
-			(*(guint64*)(locals + (ip[1]))) = (*(guint64*)(locals + (ip[2])));
-			{
-				intptr_t result = (*(guint64*)(locals + (ip[1])));
-			}
-			ip += 3;; 
-		MINT_IN_BREAK;
-
+		MINT_IN_CASE(MINT_MOV_4) MOV(guint32, guint32); MINT_IN_BREAK;
+		MINT_IN_CASE(MINT_MOV_8) MOV(guint64, guint64); MINT_IN_BREAK;			
 		MINT_IN_CASE(MINT_MOV_VT) {
 			guint16 size = ip [3];
 			memmove (locals + ip [1], locals + ip [2], size);
