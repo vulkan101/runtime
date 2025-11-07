@@ -918,7 +918,6 @@ finalizer_thread (gpointer unused)
 static void
 init_finalizer_thread (void)
 {
-	MH_LOG("inside init_finalizer_thread");
 	ERROR_DECL (error);
 	gc_thread = mono_thread_create_internal ((MonoThreadStart)finalizer_thread, NULL, MONO_THREAD_CREATE_FLAGS_NONE, error);
 	mono_error_assert_ok (error);
@@ -953,23 +952,15 @@ reference_queue_mutex_init (void)
 void
 mono_gc_init (void)
 {
-	MH_LOG("Calling mono_lazy_initialize %p", &reference_queue_mutex_inited);
 	mono_lazy_initialize (&reference_queue_mutex_inited, reference_queue_mutex_init);
-	MH_LOG("Calling mono_coop_mutex_init_recursive");
 	mono_coop_mutex_init_recursive (&finalizer_mutex);
-	MH_LOG("Calling mono_coop_mutex_init_recursive");
 	mono_os_mutex_init_recursive (&finalizable_objects_hash_lock);
-	MH_LOG("Creating new hash table");
 	finalizable_objects_hash = g_hash_table_new (mono_aligned_addr_hash, NULL);
-
-	MH_LOG("Calling mono_counters_register");
 	mono_counters_register ("Minor GC collections", MONO_COUNTER_GC | MONO_COUNTER_INT, &mono_gc_stats.minor_gc_count);
 	mono_counters_register ("Major GC collections", MONO_COUNTER_GC | MONO_COUNTER_INT, &mono_gc_stats.major_gc_count);
 	mono_counters_register ("Minor GC time", MONO_COUNTER_GC | MONO_COUNTER_ULONG | MONO_COUNTER_TIME, &mono_gc_stats.minor_gc_time);
 	mono_counters_register ("Major GC time", MONO_COUNTER_GC | MONO_COUNTER_LONG | MONO_COUNTER_TIME, &mono_gc_stats.major_gc_time);
 	mono_counters_register ("Major GC time concurrent", MONO_COUNTER_GC | MONO_COUNTER_LONG | MONO_COUNTER_TIME, &mono_gc_stats.major_gc_time_concurrent);
-
-	MH_LOG("mono_gc_base_init");
 	mono_gc_base_init ();
 
 	if (mono_gc_is_disabled ()) {
@@ -987,7 +978,6 @@ mono_gc_init (void)
 
 	mono_coop_cond_init (&exited_cond);
 	mono_coop_sem_init (&finalizer_sem, 0);
-	MH_LOG("Exiting mono_gc_init");
 #ifndef LAZY_GC_THREAD_CREATION
 	if (!mono_runtime_get_no_exec ())
 		init_finalizer_thread ();

@@ -4798,7 +4798,6 @@ handle_enum:
 	case MONO_TYPE_I4:
 	case MONO_TYPE_U4:
 	case MONO_TYPE_R4:
-		MH_LOGV(MH_LVL_CRIPPLE, "Got element size 4 for MONO_TYPE_I4/U4/R4.");
 		return 4;
 	case MONO_TYPE_I:
 	case MONO_TYPE_U:
@@ -4809,7 +4808,6 @@ handle_enum:
 	case MONO_TYPE_OBJECT:
 	case MONO_TYPE_SZARRAY:
 	case MONO_TYPE_ARRAY:
-		MH_LOGV(MH_LVL_CRIPPLE, "Got element TARGET_SIZEOF_VOID_P for MONO_TYPE_I/U/etc. size is %d", TARGET_SIZEOF_VOID_P);
 		return TARGET_SIZEOF_VOID_P;
 	case MONO_TYPE_I8:
 	case MONO_TYPE_U8:
@@ -4828,7 +4826,6 @@ handle_enum:
 	case MONO_TYPE_VAR:
 	case MONO_TYPE_MVAR: {
 		int align;
-		MH_LOG("Getting size for VAR/MVAR");
 		return mono_type_size (type, &align);
 	}
 	case MONO_TYPE_VOID:

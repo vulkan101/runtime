@@ -1665,7 +1665,6 @@ ves_pinvoke_method (
 	gpointer args;
 
 	MONO_REQ_GC_UNSAFE_MODE;	
-	MH_LOG("invoking %s", mono_method_full_name(imethod->method, TRUE));
 #ifdef HOST_WASM
 	/*
 	 * Use a per-signature entry function.
@@ -2139,7 +2138,6 @@ interp_runtime_invoke (MonoMethod *method, void *obj, void **params, MonoObject 
 	// method is transformed.
 	context->stack_pointer = (guchar*)(sp + 4);
 	g_assert (context->stack_pointer < context->stack_end);	
-	MH_LOG("calling mono_interp_exec_method for %s : %s", method->name, mono_method_full_name (method, TRUE));
 	MONO_ENTER_GC_UNSAFE;
 	mono_interp_exec_method (&frame, context, NULL);
 	MONO_EXIT_GC_UNSAFE;
@@ -2283,28 +2281,7 @@ static MONO_NO_OPTIMIZATION MONO_NEVER_INLINE gpointer
 do_icall_wrapper (InterpFrame *frame, MonoMethodSignature *sig, MintICallSig op, stackval *ret_sp, stackval *sp, gpointer ptr, gboolean save_last_error, gboolean *gc_transitions)
 {
 	MonoLMFExt ext;
-	INTERP_PUSH_LMF_WITH_CTX (frame, ext, exit_icall);	
-	if(frame->imethod && frame->imethod->method && frame->imethod->method->name)
-	{
-		MH_LOGV(MH_LVL_DEBUG, "calling do_icall for %s : %s", frame->imethod->method->name, mono_method_full_name (frame->imethod->method, TRUE));
-	}
-	else
-	{
-		MH_LOGV(MH_LVL_DEBUG, "** Not getting method name because:");
-		if (!frame->imethod)
-			{
-			MH_LOGV(MH_LVL_DEBUG, "** called do_icall_wrapper for null imethod");
-			}
-		else if (!frame->imethod->method)
-			{
-			MH_LOGV(MH_LVL_DEBUG, "** called do_icall_wrapper for imethod %p with no method", frame->imethod);
-			}
-		else if (!frame->imethod->method->name)
-			{
-			MH_LOGV(MH_LVL_DEBUG, "** called do_icall_wrapper for imethod->method %p with no name", frame->imethod->method);
-			}
-	}
-	fflush(stdout);	
+	INTERP_PUSH_LMF_WITH_CTX (frame, ext, exit_icall);		
 	if (*gc_transitions) {
 		MONO_ENTER_GC_SAFE;
 		do_icall (sig, op, ret_sp, sp, ptr, save_last_error);
@@ -4191,7 +4168,6 @@ main_loop:
 			frame->state.ip = ip + 8;
 			
 			if (imethod->method)
-				MH_LOG ("Calling native method %s with signature %s", mono_method_full_name (imethod->method, TRUE), mono_signature_full_name (csignature));
 			ves_pinvoke_method (imethod, csignature, (MonoFuncV)code, context, frame, (stackval*)(locals + ip [1]), (stackval*)(locals + ip [3]), save_last_error, cache, &gc_transitions);			
 			EXCEPTION_CHECKPOINT;
 			CHECK_RESUME_STATE (context);
@@ -7121,7 +7097,6 @@ MINT_IN_CASE(MINT_BRTRUE_I8_SP) ZEROP_SP(gint64, !=); MINT_IN_BREAK;
 			(*(gpointer*)(locals + (ip[1]))) = frame->imethod->data_items [ip [2]];
 			{
 				intptr_t result = (*(guint64*)(locals + (ip[1])));
-				MH_LOG("MINT_LDPTR: *(%p + %d) =  frame->imethod->data_items [ip [%d]]: %p", locals, ip[1], ip[2], (void*)result);
 			}
 			ip += 3;
 			MINT_IN_BREAK;
@@ -7623,7 +7598,6 @@ MINT_IN_CASE(MINT_BRTRUE_I8_SP) ZEROP_SP(gint64, !=); MINT_IN_BREAK;
 			(*(guint64*)(locals + (ip[1]))) = (*(guint64*)(locals + (ip[2])));
 			{
 				intptr_t result = (*(guint64*)(locals + (ip[1])));
-				MH_LOGV(MH_LVL_CRIPPLE, "MINT_MOV_8: *(%p + %d) = *(%p + %d): %p", locals, ip[1], locals, ip[2], (void*)result);
 			}
 			ip += 3;; 
 		MINT_IN_BREAK;

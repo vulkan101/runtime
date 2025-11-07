@@ -1972,7 +1972,6 @@ static inline gunichar2*
 mono_string_chars_internal (MonoString *s)
 {
 	MONO_REQ_GC_UNSAFE_MODE;
-	MH_LOGV(MH_LVL_CRIPPLE, "mono_string_chars_internal: s=%p\n", s);
 	return s->chars;
 }
 

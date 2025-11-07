@@ -2558,7 +2558,7 @@ mono_class_get_virtual_method (MonoClass *klass, MonoMethod *method, MonoError *
 static MonoObject*
 do_runtime_invoke (MonoMethod *method, void *obj, void **params, MonoObject **exc, MonoError *error)
 {
-	MH_LOG("starting invoke for %s\n", mono_method_full_name (method, TRUE));
+
 	MONO_REQ_GC_UNSAFE_MODE;
 
 	MonoObject *result = NULL;
@@ -2572,7 +2572,7 @@ do_runtime_invoke (MonoMethod *method, void *obj, void **params, MonoObject **ex
 	result = callbacks.runtime_invoke (method, obj, params, exc, error);
 
 	MONO_PROFILER_RAISE (method_end_invoke, (method));
-	MH_LOG("ending invoke for %s\n", mono_method_full_name (method, TRUE));
+
 	if (!is_ok (error))
 		return NULL;
 
@@ -7098,7 +7098,6 @@ exit:
 MonoStringHandle
 mono_ldstr_handle (MonoImage *image, guint32 idx, MonoError *error)
 {
-	MH_LOGV(MH_LVL_VERBOSE, "Got here");
 	// FIXME invert mono_ldstr_handle and mono_ldstr_checked.
 	return MONO_HANDLE_NEW (MonoString, mono_ldstr_checked (image, idx, error));
 }
@@ -7164,7 +7163,6 @@ mono_ldstr_metadata_sig (const char* sig, MonoStringHandleOut string_handle, Mon
 char*
 mono_ldstr_utf8 (MonoImage *image, guint32 idx, MonoError *error)
 {
-	MH_LOGV(MH_LVL_VERBOSE, "Got here");
 	const char *str;
 	size_t len2;
 	long written = 0;

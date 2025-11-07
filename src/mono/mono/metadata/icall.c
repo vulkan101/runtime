@@ -4095,9 +4095,6 @@ ves_icall_RuntimeType_TestArray_Native(MonoError *error)
 	g_ptr_array_add (res, val2);
 	g_ptr_array_add (res, val3);
 	g_ptr_array_add (res, val4);
-
-	MH_LOG ("test array values: %p %p %p", res->pdata[0], res->pdata[1], res->pdata[2]);
-	MH_LOG ("test array addresses: %p %p %p", &(res->pdata[0]), &(res->pdata[1]), &(res->pdata[2]));
 	return res;
 }
 
@@ -4107,7 +4104,6 @@ ves_icall_RuntimeType_TestArray_Raw_Native(MonoError *error)
 	assert(sizeof(gpointer) == sizeof(gpointer_ptr));
 	assert(sizeof(gpointer) == 8);
 	//bypass GPtrArray
-	MH_LOG ("allocating new test array. sizeof intptr_t is %zd", sizeof(intptr_t));
 	int numElems = 4;
 	
 #define MH_USE_GPTR_ARRAY 1
@@ -4125,10 +4121,6 @@ ves_icall_RuntimeType_TestArray_Raw_Native(MonoError *error)
 	g_ptr_array_add (res, val2);
 	g_ptr_array_add (res, val3);
 	g_ptr_array_add (res, val4);
-
-	MH_LOG ("gpointer size %zd", sizeof(gpointer));
-	MH_LOG ("test array values: %p %p %p", res->pdata[0], res->pdata[1], res->pdata[2]);
-	MH_LOG ("test array addresses: %p %p %p", &(res->pdata[0]), &(res->pdata[1]), &(res->pdata[2]));
 	return res->pdata;
 	#elif (MH_USER_INT64_ARRAY)
 	int64_t *rawArray = malloc(numElems * sizeof(int64_t));
@@ -4154,8 +4146,6 @@ ves_icall_RuntimeType_TestArray_Raw_Native(MonoError *error)
 	rawArray[3] = val4;
 	#endif
 	// 8 digits for 4 byte value
-	MH_LOG ("raw array values: %p %p %p", (void*)rawArray[0], (void*)rawArray[1], (void*)rawArray[2]);
-	MH_LOG ("raw array addresses: %p %p %p", &(rawArray[0]), &(rawArray[1]), &(rawArray[2]));
 	return (gpointer)rawArray;
 	
 	
@@ -4165,10 +4155,8 @@ GPtrArray*
 ves_icall_RuntimeType_GetConstructors_native (MonoQCallTypeHandle type_handle, guint32 bflags, MonoError *error)
 {
 	MonoType *type = type_handle.type;
-	MH_LOG("Getting constructors for type %s\n", mono_type_get_name (type));
 	if (m_type_is_byref (type)) {
 		GPtrArray* res = g_ptr_array_new ();
-		MH_LOG("Allocated array %p", (void*)res);
 		return res;
 	}
 	
@@ -4183,7 +4171,6 @@ ves_icall_RuntimeType_GetConstructors_native (MonoQCallTypeHandle type_handle, g
 
 
 	GPtrArray *res_array = g_ptr_array_sized_new (4); /* FIXME, guestimating */
-	MH_LOG("Allocated array %p \n", (void*)res_array);
 
 	MonoMethod *method;
 	gpointer iter = NULL;
@@ -4820,13 +4807,11 @@ ves_icall_System_Reflection_Assembly_InternalGetReferencedAssemblies (MonoReflec
 	}
 
 	GPtrArray *result = g_ptr_array_sized_new (count);
-	MH_LOG("Created referenced assembly array %p", (void*)result);
 	for (int i = 0; i < count; i++) {
 		MonoAssemblyName *aname = create_referenced_assembly_name (image, i, error);
 		if (!is_ok (error))
 			break;
 		monoeg_g_ptr_array_add (result, aname);
-		MH_LOG("Added assembly %s to referenced assembly array %p", aname->name, (void*)result);
 	}
 	return result;
 }
@@ -5145,7 +5130,6 @@ ves_icall_GetCurrentMethod (MonoError *error)
 static MonoMethod*
 mono_method_get_equivalent_method (MonoMethod *method, MonoClass *klass)
 {
-	MH_LOG("mono_method_get_equivalent_method called for method %s\n", method->name);
 
 	int offset = -1, i;
 	if (method->is_inflated && ((MonoMethodInflated*)method)->context.method_inst) {
@@ -5162,7 +5146,6 @@ mono_method_get_equivalent_method (MonoMethod *method, MonoClass *klass)
 			ctx.class_inst = mono_class_get_generic_container (klass)->context.class_inst;
 		result = mono_class_inflate_generic_method_full_checked (inflated->declaring, klass, &ctx, error);
 		g_assert (is_ok (error)); /* FIXME don't swallow the error */
-		MH_LOG("returning %p", result);
 		return result;
 	}
 
@@ -5202,8 +5185,6 @@ ves_icall_System_Reflection_RuntimeMethodInfo_GetMethodFromHandleInternalType_na
 		klass = mono_class_from_mono_type_internal (type);
 	else
 		klass = method->klass;
-
-	MH_LOG("About to get object handle for method %s in class %s\n", 
 		mono_method_full_name (method, true), 
 		mono_class_full_name (klass));
 	return mono_method_get_object_handle (method, klass, error);
@@ -7052,14 +7033,12 @@ mono_lookup_internal_call_full_with_flags (MonoMethod *method, gboolean warn_on_
 
 	mono_icall_lock ();
 	locked = TRUE;
-	MH_LOGV(MH_LVL_TRACE, "Looking for method with sig %s", mname);
 	res = g_hash_table_lookup (icall_hash, mname);
 	if (res) {
 		MonoIcallHashTableValue *value = (MonoIcallHashTableValue *)res;
 		if (flags)
 			*flags = value->flags;
 		res = value->method;
-		MH_LOGV(MH_LVL_TRACE, "Found %p", value->method);
 		goto exit;
 	}
 
@@ -7089,7 +7068,6 @@ mono_lookup_internal_call_full_with_flags (MonoMethod *method, gboolean warn_on_
 
 		if (res)
 		{
-			MH_LOGV(MH_LVL_TRACE, "Found method in icall_table");
 			goto exit;
 		}
 		if (warn_on_missing) {
@@ -7132,7 +7110,6 @@ mono_lookup_internal_call_full (MonoMethod *method, gboolean warn_on_missing, mo
 		*foreign = FALSE;
 
 	guint32 flags = MONO_ICALL_FLAGS_NONE;
-	MH_LOGV(MH_LVL_TRACE, "mono_lookup_internal_call_full: Looking up %s\n", method->name);
 
 	gconstpointer addr = mono_lookup_internal_call_full_with_flags (method, warn_on_missing, &flags);
 

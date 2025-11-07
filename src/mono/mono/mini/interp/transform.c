@@ -2860,8 +2860,6 @@ static uint16_t encode_signature(const int* params, int param_count, int return_
 		sprintf(buff + param_count + offset, "_%d", return_type);
 	    else 
 		sprintf(buff + param_count + offset, "_V");
-    
-	    MH_LOGV(MH_LVL_VERBOSE, "Encoded signature %s as %d", buff, encoded);
     }
     #endif
     return encoded;
@@ -2903,48 +2901,37 @@ gboolean
 interp_type_as_ptr_test (MonoType *tp)
 {
 	if (MONO_TYPE_IS_POINTER (tp)) {
-		MH_LOGV(MH_LVL_TRACE, "MONO_TYPE_IS_POINTER evaluated true");
 		return TRUE;
 	}
 	if (MONO_TYPE_IS_REFERENCE (tp)) {
-		MH_LOGV(MH_LVL_TRACE, "MONO_TYPE_IS_REFERENCE evaluated true");
 		return TRUE;
 	}
 	if ((tp)->type == MONO_TYPE_I4) {
-		MH_LOGV(MH_LVL_TRACE, "tp->type == MONO_TYPE_I4 evaluated true");
 		return TRUE;
 	}
 #if SIZEOF_VOID_P == 8
 	if ((tp)->type == MONO_TYPE_I8 || (tp)->type == MONO_TYPE_U8) {
-		MH_LOGV(MH_LVL_TRACE, "tp->type == MONO_TYPE_I8 or tp->type == MONO_TYPE_U8 evaluated true");
 		return TRUE;
 	}
 #endif
 	if ((tp)->type == MONO_TYPE_BOOLEAN) {
-		MH_LOGV(MH_LVL_TRACE, "tp->type == MONO_TYPE_BOOLEAN evaluated true");
 		return TRUE;
 	}
 	if ((tp)->type == MONO_TYPE_CHAR) {
-		MH_LOGV(MH_LVL_TRACE, "tp->type == MONO_TYPE_CHAR evaluated true");
 		return TRUE;
 	}
 	if ((tp)->type == MONO_TYPE_VALUETYPE && m_class_is_enumtype (m_type_data_get_klass_unchecked (tp))) {
-		MH_LOGV(MH_LVL_TRACE, "tp->type == MONO_TYPE_VALUETYPE and m_class_is_enumtype() evaluated true");
 		return TRUE;
 	}
 	if (is_scalar_vtype (tp)) {
-		MH_LOGV(MH_LVL_TRACE, "is_scalar_vtype(tp) evaluated true");
 		return TRUE;
 	}
 	else 
-		MH_LOGV(MH_LVL_TRACE, "is_scalar_vtype(tp) evaluated false");
 
 	if (is_scalar_vtype_test (tp)) {
-		MH_LOGV(MH_LVL_TRACE, "is_scalar_vtype_test(tp) evaluated true");
 		return TRUE;
 	}
 	else 
-		MH_LOGV(MH_LVL_TRACE, "is_scalar_vtype_test(tp) evaluated false");
 
 	return FALSE;
 }
@@ -2956,17 +2943,13 @@ interp_get_icall_sig (MonoMethodSignature *sig)
 	int params[MAX_SIG_PARAMS];
 	if (sig->param_count > MAX_SIG_PARAMS)
 	{
-		MH_LOGV(MH_LVL_VERBOSE, "Parameter count (%d) too high for icall enum encoding (MAX_SIG_PARAMS is %d)", sig->param_count, MAX_SIG_PARAMS);
 		return MINT_ICALLSIG_MAX; 
 	}
-
-	MH_LOGV(MH_LVL_TRACE, "Getting icall sig for method with %d params", sig->param_count);
 	for (int i = 0; i < sig->param_count && i < MAX_SIG_PARAMS; ++i) {
 		MonoType *tp = sig->params[i];
 		params[i] =  GET_PARAM_SIZE(tp);			
 		if (params[i] == 0) // this is ok but check logic against old method
 		{
-			MH_LOGV(MH_LVL_TRACE, "Type %s encoded as %d. tp->type value is %d. Will check against old method", mono_type_get_name(tp), params[i], tp->type);
 			gboolean isPtrOld = interp_type_as_ptr_test(tp);					
 			if (isPtrOld)
 			{
@@ -2977,16 +2960,13 @@ interp_get_icall_sig (MonoMethodSignature *sig)
 				return MINT_ICALLSIG_MAX; // not a pointer type - double check			
 		}
 		else 
-			MH_LOGV(MH_LVL_TRACE, "Type %s encoded as %d. tp->type value is %d", mono_type_get_name(tp), params[i], tp->type);
 	}
 	// returnType of 0 == void
 	int returnType = GET_PARAM_SIZE(sig->ret);
 	if (returnType == 0 && sig->ret->type != MONO_TYPE_VOID) 
 	{
-		MH_LOGV(MH_LVL_TRACE, "will return MINT_ICALLSIG_MAX: return type %s was encoded as %d. p->type value is %d. rejecting because it's not a pointer type.", mono_type_get_name(sig->ret), returnType, sig->ret->type);
 		return MINT_ICALLSIG_MAX; 
 	}	
-	MH_LOGV(MH_LVL_TRACE, "return type %s encoded as %d. p->type value is %d", mono_type_get_name(sig->ret), returnType, sig->ret->type);
 	op = encode_signature(params, sig->param_count, returnType);
 	return op;
 }

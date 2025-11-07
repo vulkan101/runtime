@@ -45,7 +45,6 @@ set(metadata_public_headers
 	image.h
 	loader.h
 	metadata.h
-    mh_log.h
 	mono-config.h
 	mono-debug.h
 	mono-gc.h

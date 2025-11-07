@@ -2855,7 +2855,6 @@ mono_assembly_load (MonoAssemblyName *aname, const char *basedir, MonoImageOpenS
 {
 	MonoAssembly *result = NULL;
 	MONO_ENTER_GC_UNSAFE;
-	MH_LOG("Loading assembly %s from basedir %s", aname->name, basedir ? basedir : "NULL");
 	MonoAssemblyByNameRequest req;
 	mono_assembly_request_prepare_byname (&req, mono_alc_get_default ());
 	req.requesting_assembly = NULL;

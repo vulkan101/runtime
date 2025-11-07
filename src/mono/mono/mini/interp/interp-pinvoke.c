@@ -1117,7 +1117,6 @@ imethod_alloc0 (InterpMethod *imethod, guint size)
 
 void log_mono_type(MonoType* type) {
     if (!type) {
-        MH_LOG("MonoType: NULL");
         return;
     }
 
@@ -1151,8 +1150,6 @@ void log_mono_type(MonoType* type) {
         case MONO_TYPE_FNPTR: type_str = "FNPTR"; break;
         default: type_str = "UNKNOWN"; break;
     }
-    
-    MH_LOG("MonoType: %s", type_str);
 }
 
 void log_mono_type_enum(MonoTypeEnum type_enum) {
@@ -1197,8 +1194,6 @@ void log_mono_type_enum(MonoTypeEnum type_enum) {
         case MONO_TYPE_ENUM: type_str = "MONO_TYPE_ENUM"; break;
         default: type_str = "UNKNOWN"; break;
     }
-    
-    MH_LOG("MonoTypeEnum: %s (0x%x)", type_str, (int)type_enum);
 }
 
 static void log_mint_type(int value)
@@ -1220,7 +1215,6 @@ case MINT_TYPE_VOID: type_str = "MINT_TYPE_VOID"; break;
 	default:
 		type_str = "UNKNOWN";
 	}
-	MH_LOG("MintType: %s (%d)", type_str, value);
 }
 static guint32*
 initialize_arg_offsets (InterpMethod *imethod, MonoMethodSignature *csig)
@@ -1236,27 +1230,20 @@ initialize_arg_offsets (InterpMethod *imethod, MonoMethodSignature *csig)
 	int arg_count = sig->hasthis + sig->param_count;
 	guint32 *arg_offsets = (guint32*)imethod_alloc0 (imethod, (arg_count + 1) * sizeof (int));
 	int index = 0, offset = 0;
-	MH_LOG_INDENT();
-	MH_LOG("Getting arg offsets");	
 	if (sig->hasthis) {
 		arg_offsets [index++] = 0;
 		offset = MINT_STACK_SLOT_SIZE;
 	}
-	MH_LOG_INDENT();
 	for (int i = 0; i < sig->param_count; i++) {
 		MonoType *type = sig->params [i];
 		int size, align;
 		log_mono_type(type);
 		log_mint_type(mono_mint_type (type));
-		MH_LOG_INDENT();
 		size = mono_interp_type_size (type, mono_mint_type (type), &align);
-		MH_LOG("calculated size: %d - note includes alignment of %d", size, align);
-		MH_LOG_UNINDENT();
 		offset = ALIGN_TO (offset, align);
 		arg_offsets [index++] = offset;
 		offset += size;
 	}
-	MH_LOG_UNINDENT();
 	// This index is not associated with an actual argument, we just store the offset
 	// for convenience in order to easily determine the size of the param area used
 	arg_offsets [index] = ALIGN_TO (offset, MINT_STACK_SLOT_SIZE);
@@ -1264,7 +1251,6 @@ initialize_arg_offsets (InterpMethod *imethod, MonoMethodSignature *csig)
 	mono_memory_write_barrier ();
 	/* If this fails, the new one is leaked in the mem manager */
 	mono_atomic_cas_ptr ((gpointer*)&imethod->arg_offsets, arg_offsets, NULL);
-	MH_LOG_UNINDENT();
 	return imethod->arg_offsets;
 }
 
@@ -1514,17 +1500,13 @@ build_args_from_sig (InterpMethodArguments *margs, MonoMethodSignature *sig, Bui
 		else
 			margs->fargs = g_malloc0 (sizeof (double) * margs->flen);
 	}
-	MH_LOG_INDENT();
-	MH_LOG("setting args from signature: %s", mono_signature_full_name (sig));
 	for (int i = 0; i < sig->param_count; i++) {
-		MH_LOG_INDENT();
 		guint32 offset = get_arg_offset (frame->imethod, sig, i);
 		stackval *sp_arg = STACK_ADD_BYTES (frame->stack, offset);
 
 		switch (info->arg_types [i]) {
 		case PINVOKE_ARG_INT:
 			margs->iargs [int_i] = sp_arg->data.p;
-			MH_LOG("PINVOKE_ARG_INT");
 #if DEBUG_INTERP 
 			g_print ("build_args_from_sig: margs->iargs [%d]: %p (frame @ %d)\n", int_i, margs->iargs [int_i], i);
 #endif
@@ -1532,7 +1514,6 @@ build_args_from_sig (InterpMethodArguments *margs, MonoMethodSignature *sig, Bui
 			break;
 		case PINVOKE_ARG_R4:
 			* (float *) &(margs->fargs [int_f]) = sp_arg->data.f_r4;
-			MH_LOG("PINVOKE_ARG_R4");
 #if DEBUG_INTERP 
 			g_print ("build_args_from_sig: margs->fargs [%d]: %p (%f) (frame @ %d)\n", int_f, margs->fargs [int_f], margs->fargs [int_f], i);
 #endif
@@ -1540,7 +1521,6 @@ build_args_from_sig (InterpMethodArguments *margs, MonoMethodSignature *sig, Bui
 			break;
 		case PINVOKE_ARG_R8:
 			margs->fargs [int_f] = sp_arg->data.f;
-			MH_LOG("PINVOKE_ARG_R8");
 #if DEBUG_INTERP 
 			g_print ("build_args_from_sig: margs->fargs [%d]: %p (%f) (frame @ %d)\n", int_f, margs->fargs [int_f], margs->fargs [int_f], i);
 #endif
@@ -1548,14 +1528,12 @@ build_args_from_sig (InterpMethodArguments *margs, MonoMethodSignature *sig, Bui
 			break;
 		case PINVOKE_ARG_VTYPE:
 			margs->iargs [int_i] = sp_arg;
-			MH_LOG("PINVOKE_ARG_VTYPE");
 #if DEBUG_INTERP 
 			g_print ("build_args_from_sig: margs->iargs [%d]: %p (vt) (frame @ %d)\n", int_i, margs->iargs [int_i], i);
 #endif
 			int_i++;
 			break;
 		case PINVOKE_ARG_SCALAR_VTYPE:
-			MH_LOG("PINVOKE_ARG_SCALAR_VTYPE");
 			margs->iargs [int_i] = *(gpointer*)sp_arg;
 
 #if DEBUG_INTERP 
@@ -1564,7 +1542,6 @@ build_args_from_sig (InterpMethodArguments *margs, MonoMethodSignature *sig, Bui
 			int_i++;
 			break;
 		case PINVOKE_ARG_INT_PAIR: {
-			MH_LOG("PINVOKE_ARG_INT_PAIR");
 			margs->iargs [int_i] = (gpointer)(gssize)sp_arg->data.pair.lo;
 			int_i++;
 			margs->iargs [int_i] = (gpointer)(gssize)sp_arg->data.pair.hi;
@@ -1578,15 +1555,9 @@ build_args_from_sig (InterpMethodArguments *margs, MonoMethodSignature *sig, Bui
 			g_assert_not_reached ();
 			break;
 		}
-		MH_LOG_UNINDENT();
 	}
-	MH_LOG_UNINDENT();
-
-	MH_LOG_INDENT();
-	MH_LOG("setting ret_pinvoke_type: %s", mono_signature_full_name (sig));
 	switch (info->ret_pinvoke_type) {
 	case PINVOKE_ARG_WASM_VALUETYPE_RESULT:
-		MH_LOG("PINVOKE_ARG_WASM_VALUETYPE_RESULT");
 		// We pass the return value address in arg0 so fill it in, we already
 		//  reserved space for it earlier.
 		g_assert (frame->retval);
@@ -1596,24 +1567,20 @@ build_args_from_sig (InterpMethodArguments *margs, MonoMethodSignature *sig, Bui
 		margs->is_float_ret = 0;
 		break;
 	case PINVOKE_ARG_INT:
-		MH_LOG("PINVOKE_ARG_INT");
 		margs->retval = (gpointer*)frame->retval;
 		margs->is_float_ret = 0;
 		break;
 	case PINVOKE_ARG_R8:
-		MH_LOG("PINVOKE_ARG_R8");
 		margs->retval = (gpointer*)frame->retval;
 		margs->is_float_ret = 1;
 		break;
 	case PINVOKE_ARG_NONE:
-		MH_LOG("PINVOKE_ARG_NONE");
 		margs->retval = NULL;
 		break;
 	default:
 		g_assert_not_reached ();
 		break;
 	}
-	MH_LOG_UNINDENT();
 }
 #endif
 
@@ -2192,12 +2159,9 @@ interp_runtime_invoke (MonoMethod *method, void *obj, void **params, MonoObject 
 	// method is transformed.
 	context->stack_pointer = (guchar*)(sp + 4);
 	g_assert (context->stack_pointer < context->stack_end);
-	MH_LOG_INDENT();
-	MH_LOG("calling mono_interp_exec_method for %s : %s", method->name, mono_method_full_name (method, TRUE));
 	MONO_ENTER_GC_UNSAFE;
 	mono_interp_exec_method (&frame, context, NULL);
 	MONO_EXIT_GC_UNSAFE;
-	MH_LOG_UNINDENT();
 	context->stack_pointer = (guchar*)sp;
 
 	if (context->has_resume_state) {
@@ -2338,8 +2302,6 @@ do_icall_wrapper (InterpFrame *frame, MonoMethodSignature *sig, MintICallSig op,
 {
 	MonoLMFExt ext;
 	INTERP_PUSH_LMF_WITH_CTX (frame, ext, exit_icall);
-	MH_LOG_INDENT();
-	MH_LOG("calling do_icall for %s : %s", frame->imethod->method->name, mono_method_full_name (frame->imethod->method, TRUE));
 	if (*gc_transitions) {
 		MONO_ENTER_GC_SAFE;
 		do_icall (sig, op, ret_sp, sp, ptr, save_last_error);
@@ -2348,7 +2310,6 @@ do_icall_wrapper (InterpFrame *frame, MonoMethodSignature *sig, MintICallSig op,
 	} else {
 		do_icall (sig, op, ret_sp, sp, ptr, save_last_error);
 	}
-	MH_LOG_UNINDENT();
 	interp_pop_lmf (&ext);
 
 	goto exit_icall; // prevent unused label warning in some configurations
@@ -4218,10 +4179,7 @@ main_loop:
 			gpointer *cache = (gpointer*)&frame->imethod->data_items [ip [7]];
 			/* for calls, have ip pointing at the start of next instruction */
 			frame->state.ip = ip + 8;
-			MH_LOG_INDENT();
-			MH_LOG ("Calling native method %s with signature %s\n", mono_method_full_name (imethod->method, TRUE), mono_signature_full_name (csignature));
 			ves_pinvoke_method (imethod, csignature, (MonoFuncV)code, context, frame, (stackval*)(locals + ip [1]), (stackval*)(locals + ip [3]), save_last_error, cache, &gc_transitions);
-			MH_LOG_UNINDENT();
 			EXCEPTION_CHECKPOINT;
 			CHECK_RESUME_STATE (context);
 

@@ -95,8 +95,6 @@ method_enter (MonoProfiler *prof, MonoMethod *method, MonoProfilerCallContext *c
 		newframe->method = method;
 		newframe->interp_frame = ctx ? ctx->interp_frame : NULL;
 	}
-	MH_LOG_INDENT();
-	MH_LOG("method_enter: %d %s\n", top_stack_frame_index, mono_method_get_full_name (method));
 }
 
 static void
@@ -133,9 +131,6 @@ method_leave (MonoProfiler *prof, MonoMethod *method, MonoProfilerCallContext *c
 	bool is_over = top_stack_frame_index >= MAX_STACK_DEPTH;
 	int top_index = is_over ? MAX_STACK_DEPTH - 1 : top_stack_frame_index;
 	ProfilerStackFrame *top_frame = &profiler_stack_frames[top_index];
-	
-	MH_LOG_UNINDENT();
-	MH_LOG("method_leave: %d %s\n", top_stack_frame_index, mono_method_get_full_name (method));
 
 	if (!is_over) {
 		g_assertf(top_frame->method == method, "method_exc_leave: %d method mismatch. Pointer comparison: %p : %p. \ntop_frame %s != leave %s. \n", top_stack_frame_index, top_frame->method, method, mono_method_get_full_name (top_frame->method), mono_method_get_full_name (method));
@@ -168,9 +163,6 @@ method_exc_leave (MonoProfiler *prof, MonoMethod *method, MonoObject *exc)
 	bool is_over = top_stack_frame_index >= MAX_STACK_DEPTH;
 	int top_index = is_over ? MAX_STACK_DEPTH - 1 : top_stack_frame_index;
 	ProfilerStackFrame *top_frame = &profiler_stack_frames[top_index];
-	
-	MH_LOG_UNINDENT();
-	MH_LOG("method_exc_leave: %d %s\n", top_stack_frame_index, mono_method_get_full_name (method));
 
 	if (top_frame->should_record || should_record_frame (mono_wasm_profiler_now ()))
 	{

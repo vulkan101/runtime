@@ -61,8 +61,6 @@ handle_enum:
 	case MONO_TYPE_VOID:
 		return 'V';
 	case MONO_TYPE_VALUETYPE: {
-		MH_LOG_INDENT();	
-		MH_LOG("Handling valuetype %s", mono_type_full_name (t));
 		if (m_class_is_enumtype (m_type_data_get_klass_unchecked (t))) {
 			t = mono_class_enum_basetype_internal (m_type_data_get_klass_unchecked (t));
 			goto handle_enum;
@@ -115,17 +113,10 @@ get_long_arg (InterpMethodArguments *margs, int idx)
 {
 	#if SIZEOF_VOID_P == 4
 	interp_pair p;
-	MH_LOG_INDENT();
-	MH_LOG("Getting long arg [%d]", idx);
 	p.pair.lo = (gint32)(gssize)margs->iargs [idx];
 	p.pair.hi = (gint32)(gssize)margs->iargs [idx + 1];
-	MH_LOG("Got pair %d %d", p.pair.lo, p.pair.hi);
-	MH_LOG_UNINDENT();
 	return p.l;
 	#else
-	MH_LOG_INDENT();
-	MH_LOG("Getting long arg [%d]: %lld", idx, (gint64)(gssize)margs->iargs [idx]);
-	MH_LOG_UNINDENT();
 	return (gint64)(gssize)margs->iargs [idx];
 	#endif
 }
@@ -141,11 +132,7 @@ mono_wasm_install_interp_to_native_callback (MonoWasmNativeToInterpCallback cb)
 int
 mono_wasm_interp_method_args_get_iarg (InterpMethodArguments *margs, int i)
 {
-	MH_LOG_INDENT();
-	MH_LOG("Looking for iarg[%d]", i);
 	int retval = (int)(gssize)margs->iargs[i];
-	MH_LOG("Got %d", retval);
-	MH_LOG_UNINDENT();
 	return retval;	
 }
 
@@ -180,7 +167,6 @@ compare_icall_tramp (const void *key, const void *elem)
 }
 static void 
 logCookie (int c_count, const char *cookie) {
-	MH_LOG("WASM ICALL COOKIE: %s\n", cookie);
 }
 gpointer
 mono_wasm_get_interp_to_native_trampoline (MonoMethodSignature *sig)
@@ -191,8 +177,6 @@ mono_wasm_get_interp_to_native_trampoline (MonoMethodSignature *sig)
 
 	memset (cookie, 0, 32);
 	cookie [0] = type_to_c (sig->ret, &is_byref_return);
-	MH_LOG_INDENT();
-	MH_LOG("Parameter cookie[0] = %c (from type: %s (enum: %d))\n", cookie [0], mono_type_get_name_full(sig->ret, MONO_TYPE_NAME_FORMAT_FULL_NAME), (int)sig->ret->type);
 
 	c_count = sig->param_count + sig->hasthis + is_byref_return + 1;
 	g_assert (c_count < sizeof (cookie)); //ensure we don't overflow the local
@@ -201,31 +185,22 @@ mono_wasm_get_interp_to_native_trampoline (MonoMethodSignature *sig)
 		cookie[0] = 'V';
 		// return value address goes in arg0
 		cookie[1] = ptrChar;
-		MH_LOG_INDENT();
-		MH_LOG("Return value is byref: cookie[0][1] = %c, %c", cookie [0], cookie [1]);		
-		MH_LOG_UNINDENT();
 		offset += 1;
 	}
 	if (sig->hasthis) {
 		// thisptr goes in arg0/arg1 depending on return type
 		cookie [offset] = ptrChar;
-		MH_LOG_INDENT();
-		MH_LOG("Sig hasthis: value is byref: cookie[%d] = %c", offset, cookie [offset]);		
-		MH_LOG_UNINDENT();
 		offset += 1;
 	}
 	
 	for (int i = 0; i < sig->param_count; ++i) {
 		cookie [offset + i] = type_to_c (sig->params [i], NULL);
-		MH_LOG("Parameter cookie[%d] = %c (from type: %s)\n", offset + i, cookie [offset + i], mono_type_get_name_full(sig->params[i], MONO_TYPE_NAME_FORMAT_FULL_NAME));
 	}
-	MH_LOG_UNINDENT();
 	logCookie(c_count, cookie);
 
 	void *p = mono_wasm_interp_to_native_callback (cookie);
 	if (!p)
 		g_error ("CANNOT HANDLE INTERP ICALL SIG %s\n", cookie);
-	MH_LOG("Got interp to native trampoline %p for cookie %s", p, cookie);
 	return p;
 }
 

@@ -279,12 +279,8 @@ mono_runtime_init_checked (MonoDomain *domain, MonoThreadStartCB start_cb, MonoT
 
 	if (!mono_runtime_get_no_exec ())
 		create_domain_objects (domain);
-	
-	MH_LOG("Calling mono_gc_init %p", &mono_gc_init);
 	/* GC init has to happen after thread init */
 	mono_gc_init ();
-
-	MH_LOG("mono_runtime_get_no_exec");
 	if (!mono_runtime_get_no_exec ())
 		mono_runtime_install_appctx_properties ();
 
@@ -858,13 +854,10 @@ mono_runtime_install_appctx_properties (void)
 	guint32 *combined_value_lengths;
 	MonoFileMap *runtimeconfig_json_map = NULL;
 	gpointer runtimeconfig_json_map_handle = NULL;
-	MH_LOG("Calling runtimeconfig_json_get_buffer");
 	const char *buffer_start = runtimeconfig_json_get_buffer (runtime_config_arg, &runtimeconfig_json_map, &runtimeconfig_json_map_handle);
 	const char *buffer = buffer_start;
-	MH_LOG("Got buffer. calling mono_class_get_method_from_name_checked");
 	MonoMethod *setup = mono_class_get_method_from_name_checked (mono_class_get_appctx_class (), "Setup", 5, 0, error);
 	g_assert (setup);
-	MH_LOG("Got Setup method");
 	// FIXME: TRUSTED_PLATFORM_ASSEMBLIES is very large
 
 	// Combine and convert properties
