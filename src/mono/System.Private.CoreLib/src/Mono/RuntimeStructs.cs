@@ -21,15 +21,7 @@ namespace Mono
     // Managed representations of mono runtime types
     //
     internal static class RuntimeStructs
-    {
-        // glib.h GPtrArray
-        [StructLayout(LayoutKind.Sequential, Pack = 8)]
-        internal unsafe struct GPtrArray
-        {
-            internal IntPtr* data;
-            internal int len;
-            internal int padding;
-        }
+    {        
         // class-internals.h MonoRemoteClass
         [StructLayout(LayoutKind.Sequential)]
         internal unsafe struct RemoteClass
@@ -55,6 +47,15 @@ namespace Mono
             internal ushort flags;
             internal uint token;
             internal MonoClass** constraints; /* NULL terminated */
+        }
+
+        // glib.h GPtrArray
+        [StructLayout(LayoutKind.Sequential, Pack = 8)]
+        internal unsafe struct GPtrArray
+        {
+            internal IntPtr* data;
+            internal int len;
+            internal int padding;
         }
     }
 
