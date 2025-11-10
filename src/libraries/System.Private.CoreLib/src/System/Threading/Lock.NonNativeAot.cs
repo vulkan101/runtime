@@ -47,14 +47,7 @@ namespace System.Threading
 
             public bool IsInitialized => _id != 0;
             public static ThreadId Current_NoInitialize => new ThreadId(t_threadId);
-
-            public static uint GetCurrentOSThreadIdForTest()
-            {
-                var threadId = new ThreadId(0);
-                threadId.InitializeForCurrentThread();
-                return threadId.Id;
-            }
-
+            
             public void InitializeForCurrentThread()
             {
                 Debug.Assert(!IsInitialized);
