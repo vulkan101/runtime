@@ -10,7 +10,6 @@ import cwraps from "./cwraps";
 import { isSharedArrayBuffer, localHeapViewU8, getU32_local, setU16_local, localHeapViewU32, getU16_local, localHeapViewU16, _zero_region, malloc, free } from "./memory";
 import { NativePointer, CharPtr, VoidPtr } from "./types/emscripten";
 import { safeBigIntToNumber } from "./invoke-js";
-import { mono_log_debug } from "./logging";
 
 export const interned_js_string_table = new Map<string, MonoString>();
 export const mono_wasm_empty_string = "";
@@ -62,11 +61,9 @@ export function stringToUTF8Ptr (str: string): CharPtr {
 export function utf8ToStringRelaxed (buffer: Uint8Array): string {
     if (_text_decoder_utf8_relaxed === undefined) {
         const retval = Module.UTF8ArrayToString(buffer, 0, buffer.byteLength);
-        mono_log_debug("utf8ToStringRelaxed: UTF8ArrayToString got " + retval);
         return retval;
     }
     const retval = _text_decoder_utf8_relaxed.decode(buffer);
-    mono_log_debug("utf8ToStringRelaxed: _text_decoder_utf8_relaxed.decode got " + retval);
     return retval;
 }
 
@@ -92,19 +89,13 @@ export function utf8BufferToString (heapOrArray: Uint8Array, idx: number, maxByt
     let endPtr = idx;
     while (heapOrArray[endPtr] && !(endPtr >= endIdx)) ++endPtr;
     if (endPtr - idx <= 16) {
-        const retval = Module.UTF8ArrayToString(heapOrArray, idx, maxBytesToRead);
-        mono_log_debug("utf8BufferToString: Module.UTF8ArrayToStrin got " + retval);
-        return retval;
+        return Module.UTF8ArrayToString(heapOrArray, idx, maxBytesToRead);
     }
     if (_text_decoder_utf8_validating === undefined) {
-        const retval = Module.UTF8ArrayToString(heapOrArray, idx, maxBytesToRead);
-        mono_log_debug("utf8BufferToString: Module.UTF8ArrayToString got " + retval);
-        return retval;
+        return Module.UTF8ArrayToString(heapOrArray, idx, maxBytesToRead);
     }
     const view = viewOrCopy(heapOrArray, idx as any, endPtr as any);
-    const retval = _text_decoder_utf8_validating.decode(view);
-    mono_log_debug("utf8BufferToString: _text_decoder_utf8_validating.decode got " + retval);
-    return retval;
+    return _text_decoder_utf8_validating.decode(view);
 }
 
 export function utf16ToString (startPtr: number, endPtr: number): string {
