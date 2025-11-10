@@ -90,9 +90,7 @@ is_scalar_vtype (MonoType *type)
 }
 void
 stackval_from_data (MonoType *type, stackval *result, const void *data, gboolean pinvoke)
-{
-	intptr_t data_ptr = *(intptr_t *)data;
-	
+{		
 //	memset(result, 0, sizeof(stackval));	
 	if (m_type_is_byref (type)) {
 		result->data.p = *(gpointer*)data;
@@ -330,10 +328,7 @@ do_icall (MonoMethodSignature *sig, MintICallSig op, stackval *ret_sp, stackval 
 	}
 	case MINT_ICALLSIG_88_8: {
 		typedef I8(*T)(I8, I8);
-		if (!ptr)
-		
 		T func = (T)ptr;
-		if (!func)
 		ret_sp->data.p = func(sp[0].data.p, sp[1].data.p);
 		break;
 	}
