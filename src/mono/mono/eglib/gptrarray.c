@@ -59,7 +59,7 @@ g_ptr_array_grow(GPtrArrayPriv *array, guint length)
 
 GPtrArray *
 g_ptr_array_new(void)
-{
+{	
 	return g_ptr_array_sized_new(0);
 }
 
@@ -113,10 +113,10 @@ g_ptr_array_set_size(GPtrArray *array, gint length)
 
 void
 g_ptr_array_add(GPtrArray *array, gpointer data)
-{
+{	
 	g_assert (array);
 	g_ptr_array_grow((GPtrArrayPriv *)array, 1);
-	array->pdata[array->len++] = data;
+	array->pdata[array->len++] = data;	
 }
 
 gpointer

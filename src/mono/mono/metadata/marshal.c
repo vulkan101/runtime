@@ -77,7 +77,6 @@ MONO_PRAGMA_WARNING_POP()
 #include <errno.h>
 #include "icall-decl.h"
 #include "icall-signatures.h"
-
 static void
 mono_string_utf16len_to_builder (MonoStringBuilderHandle sb, const gunichar2 *text, gsize len, MonoError *error);
 
@@ -1133,7 +1132,6 @@ mono_string_to_byvalstr_impl (char *dst, MonoStringHandle src, int size, MonoErr
 {
 	g_assert (dst != NULL);
 	g_assert (size > 0);
-
 	memset (dst, 0, size);
 	if (!MONO_HANDLE_BOOL (src))
 		return;
@@ -1536,7 +1534,6 @@ MonoMarshalConv
 mono_marshal_get_ptr_to_string_conv (MonoMethodPInvoke *piinfo, MonoMarshalSpec *spec, gboolean *need_free)
 {
 	MonoMarshalNative encoding = mono_marshal_get_string_encoding (piinfo, spec);
-
 	*need_free = TRUE;
 
 	switch (encoding) {
@@ -1992,7 +1989,6 @@ mono_marshal_get_delegate_begin_invoke (MonoMethod *method)
 	char *name;
 	MonoGenericContext *ctx = NULL;
 	MonoMethod *orig_method = NULL;
-
 	g_assert (method && m_class_get_parent (method->klass) == mono_defaults.multicastdelegate_class &&
 		  !strcmp (method->name, "BeginInvoke"));
 
@@ -2370,7 +2366,6 @@ mono_marshal_get_delegate_invoke (MonoMethod *method, MonoDelegate *del)
 	MonoMethodSignature *sig;
 
 	sig = mono_signature_no_pinvoke (method);
-
 	if (del && !del->target && del->method && mono_method_signature_internal (del->method)->hasthis) {
 		if (!(del->method->flags & METHOD_ATTRIBUTE_VIRTUAL) && !m_class_is_valuetype (del->method->klass) && sig->param_count ==  mono_method_signature_internal (del->method)->param_count + 1) {
 			/* The first argument of the delegate is passed as this, the normal invoke code can handle this */
@@ -2973,7 +2968,6 @@ mono_marshal_get_icall_wrapper (MonoJitICallInfo *callinfo, gboolean check_excep
 
 	MonoMethodSignature *const sig = callinfo->sig;
 	g_assert (sig->pinvoke);
-
 	char *const name = g_strdup_printf ("__icall_wrapper_%s", callinfo->name);
 	mb = mono_mb_new (mono_defaults.object_class, name, MONO_WRAPPER_MANAGED_TO_NATIVE);
 
@@ -4572,7 +4566,7 @@ mono_marshal_get_struct_to_ptr (MonoClass *klass)
 	WrapperInfo *info;
 
 	g_assert (klass != NULL);
-
+		
 	mono_marshal_load_type_info (klass);
 
 	MonoMarshalType *marshal_info = mono_class_get_marshal_info (klass);
@@ -4621,7 +4615,6 @@ mono_marshal_get_ptr_to_struct (MonoClass *klass)
 	WrapperInfo *info;
 
 	g_assert (klass != NULL);
-
 	mono_marshal_load_type_info (klass);
 
 	MonoMarshalType *marshal_info = mono_class_get_marshal_info (klass);
@@ -4739,13 +4732,15 @@ mono_marshal_get_synchronized_wrapper (MonoMethod *method)
 	 */
 	if (ctx) {
 		cache = get_cache (&((MonoMethodInflated*)orig_method)->owner->wrapper_caches.synchronized_cache, mono_aligned_addr_hash, NULL);
-		res = check_generic_wrapper_cache (cache, orig_method, orig_method, method);
+		res = check_generic_wrapper_cache (cache, orig_method, orig_method, method);		
 		if (res)
 			return res;
+			
 	} else {
 		cache = get_cache (&get_method_image (method)->wrapper_caches.synchronized_cache, mono_aligned_addr_hash, NULL);
-		if ((res = mono_marshal_find_in_cache (cache, method)))
+		if ((res = mono_marshal_find_in_cache (cache, method)))			
 			return res;
+			
 	}
 
 	sig = mono_metadata_signature_dup_full (get_method_image (method), mono_method_signature_internal (method));
@@ -4793,7 +4788,6 @@ mono_marshal_get_synchronized_wrapper (MonoMethod *method)
 											 mb, sig, sig->param_count + 16, info, NULL);
 	}
 	mono_mb_free (mb);
-
 	return res;
 }
 
@@ -4829,7 +4823,6 @@ mono_marshal_get_unbox_wrapper (MonoMethod *method)
 	mono_mb_free (mb);
 
 	/* mono_method_print_code (res); */
-
 	return res;
 }
 
@@ -5016,7 +5009,6 @@ mono_marshal_get_stelemref (void)
 	mono_mb_free (mb);
 
 	MONO_STATIC_POINTER_INIT_END (MonoMethod, ret)
-
 	return ret;
 }
 
@@ -5049,7 +5041,6 @@ mono_marshal_get_gsharedvt_in_wrapper (void)
 	mono_mb_free (mb);
 
 	MONO_STATIC_POINTER_INIT_END (MonoMethod, ret)
-
 	return ret;
 }
 
@@ -5082,7 +5073,6 @@ mono_marshal_get_gsharedvt_out_wrapper (void)
 	mono_mb_free (mb);
 
 	MONO_STATIC_POINTER_INIT_END (MonoMethod, ret)
-
 	return ret;
 }
 
@@ -5237,7 +5227,6 @@ mono_marshal_get_array_accessor_wrapper (MonoMethod *method)
 											 info, NULL);
 	}
 	mono_mb_free (mb);
-
 	return res;
 }
 
@@ -5416,7 +5405,6 @@ mono_marshal_get_unsafe_accessor_wrapper (MonoMethod *accessor_method, MonoUnsaf
 	mono_mb_free (mb);
 
 	/* mono_method_print_code (res); */
-
 	return res;
 }
 
@@ -5666,7 +5654,7 @@ ves_icall_System_Runtime_InteropServices_Marshal_PtrToStructureHelper (gconstpoi
 	ptr_to_structure (src, dst, error);
 }
 
-int
+gpointer
 ves_icall_System_Runtime_InteropServices_Marshal_OffsetOf (MonoReflectionTypeHandle ref_type, MonoStringHandle field_name, MonoError *error)
 {
 	error_init (error);
@@ -5727,7 +5715,7 @@ ves_icall_System_Runtime_InteropServices_Marshal_OffsetOf (MonoReflectionTypeHan
 	}
 
 	MonoMarshalType *info = mono_marshal_load_type_info (klass);
-	return info->fields [match_index].offset;
+	return GINT_TO_POINTER(info->fields [match_index].offset);
 }
 
 void
@@ -6092,7 +6080,6 @@ mono_class_native_size (MonoClass *klass, guint32 *align)
 
 	if (align)
 		*align = info->min_align;
-
 	return info->native_size;
 }
 

@@ -43,6 +43,10 @@ if (NOT CLR_CMAKE_TARGET_BROWSER AND NOT CLR_CMAKE_TARGET_WASI)
     )
 endif ()
 
+if (CLR_CMAKE_TARGET_BROWSER AND CMAKE_USE_MEMORY64)    
+    add_compile_options(--target=wasm64)
+endif()
+
 if (CLR_CMAKE_TARGET_UNIX OR CLR_CMAKE_TARGET_BROWSER OR CLR_CMAKE_TARGET_WASI)
     set(NATIVE_LIBS_EXTRA)
     append_extra_compression_libs(NATIVE_LIBS_EXTRA)

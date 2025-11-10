@@ -47,7 +47,7 @@ namespace System.Threading
 
             public bool IsInitialized => _id != 0;
             public static ThreadId Current_NoInitialize => new ThreadId(t_threadId);
-
+            
             public void InitializeForCurrentThread()
             {
                 Debug.Assert(!IsInitialized);

@@ -11,8 +11,13 @@
 #include <mono/jit/mono-private-unstable.h>
 #include "interp/interp.h"
 #include "aot-runtime.h"
-
 #ifdef HOST_WASM
+
+#if SIZEOF_VOID_P == 4
+static const char ptrChar = 'I';
+#else
+static const char ptrChar = 'L';
+#endif
 
 static char
 type_to_c (MonoType *t, gboolean *is_byref_return)
@@ -22,10 +27,12 @@ type_to_c (MonoType *t, gboolean *is_byref_return)
 	if (is_byref_return)
 		*is_byref_return = 0;
 	if (m_type_is_byref (t))
-		return 'I';
+	{
+		return ptrChar;
+	}
 
 handle_enum:
-	switch (t->type) {
+	switch (t->type) {		
 	case MONO_TYPE_BOOLEAN:
 	case MONO_TYPE_CHAR:
 	case MONO_TYPE_I1:
@@ -34,21 +41,22 @@ handle_enum:
 	case MONO_TYPE_U2:
 	case MONO_TYPE_I4:
 	case MONO_TYPE_U4:
-	case MONO_TYPE_I:
-	case MONO_TYPE_U:
+		return 'I';
+	case MONO_TYPE_I: 
+	case MONO_TYPE_U:		 
 	case MONO_TYPE_PTR:
 	case MONO_TYPE_SZARRAY:
 	case MONO_TYPE_CLASS:
 	case MONO_TYPE_OBJECT:
 	case MONO_TYPE_STRING:
-		return 'I';
+		return ptrChar;
 	case MONO_TYPE_R4:
 		return 'F';
 	case MONO_TYPE_R8:
 		return 'D';
 		break;
 	case MONO_TYPE_I8:
-	case MONO_TYPE_U8:
+	case MONO_TYPE_U8:	
 		return 'L';
 	case MONO_TYPE_VOID:
 		return 'V';
@@ -68,8 +76,7 @@ handle_enum:
 
 		if (is_byref_return)
 			*is_byref_return = 1;
-
-		return 'I';
+		return ptrChar;		
 	}
 	case MONO_TYPE_GENERICINST: {
 		// This previously erroneously used m_type_data_get_klass which isn't legal for genericinst, we have to use class_from_mono_type_internal
@@ -83,8 +90,7 @@ handle_enum:
 
 			return 'S';
 		}
-
-		return 'I';
+		return ptrChar;		
 	}
 	default:
 		g_warning ("CANT TRANSLATE %s", mono_type_full_name (t));
@@ -105,10 +111,14 @@ typedef union {
 static gint64
 get_long_arg (InterpMethodArguments *margs, int idx)
 {
+	#if SIZEOF_VOID_P == 4
 	interp_pair p;
 	p.pair.lo = (gint32)(gssize)margs->iargs [idx];
 	p.pair.hi = (gint32)(gssize)margs->iargs [idx + 1];
 	return p.l;
+	#else
+	return (gint64)(gssize)margs->iargs [idx];
+	#endif
 }
 
 static MonoWasmNativeToInterpCallback mono_wasm_interp_to_native_callback;
@@ -122,7 +132,8 @@ mono_wasm_install_interp_to_native_callback (MonoWasmNativeToInterpCallback cb)
 int
 mono_wasm_interp_method_args_get_iarg (InterpMethodArguments *margs, int i)
 {
-	return (int)(gssize)margs->iargs[i];
+	int retval = (int)(gssize)margs->iargs[i];
+	return retval;	
 }
 
 gint64
@@ -171,18 +182,19 @@ mono_wasm_get_interp_to_native_trampoline (MonoMethodSignature *sig)
 	if (is_byref_return) {
 		cookie[0] = 'V';
 		// return value address goes in arg0
-		cookie[1] = 'I';
+		cookie[1] = ptrChar;
 		offset += 1;
 	}
 	if (sig->hasthis) {
 		// thisptr goes in arg0/arg1 depending on return type
-		cookie [offset] = 'I';
+		cookie [offset] = ptrChar;
 		offset += 1;
 	}
+	
 	for (int i = 0; i < sig->param_count; ++i) {
 		cookie [offset + i] = type_to_c (sig->params [i], NULL);
 	}
-
+	
 	void *p = mono_wasm_interp_to_native_callback (cookie);
 	if (!p)
 		g_error ("CANNOT HANDLE INTERP ICALL SIG %s\n", cookie);

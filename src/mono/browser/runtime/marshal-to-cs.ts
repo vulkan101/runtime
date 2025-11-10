@@ -15,7 +15,8 @@ import {
     set_arg_length, get_arg, get_signature_arg1_type, get_signature_arg2_type, js_to_cs_marshalers,
     get_signature_res_type, bound_js_function_symbol, set_arg_u16, array_element_size,
     get_string_root, Span, ArraySegment, MemoryViewType, get_signature_arg3_type, set_arg_i64_big, set_arg_intptr,
-    set_arg_element_type, ManagedObject, JavaScriptMarshalerArgSize, proxy_debug_symbol, get_arg_gc_handle, get_arg_type, set_arg_proxy_context, get_arg_intptr
+    set_arg_element_type, ManagedObject, JavaScriptMarshalerArgSize, proxy_debug_symbol, get_arg_gc_handle, get_arg_type, set_arg_proxy_context, get_arg_intptr,
+    add_offset
 } from "./marshal";
 import { get_marshaler_to_js_by_type } from "./marshal-to-js";
 import { _zero_region, fixupPointer, localHeapViewF64, localHeapViewI32, localHeapViewU8, malloc } from "./memory";
@@ -24,7 +25,8 @@ import { JSMarshalerArgument, JSMarshalerArguments, JSMarshalerType, MarshalerTo
 import { TypedArray } from "./types/emscripten";
 
 export const jsinteropDoc = "For more information see https://aka.ms/dotnet-wasm-jsinterop";
-
+export const MAX_BIGINT64 = 9223372036854775807n;
+export const MIN_BIGINT64 = -9223372036854775808n;
 export function initialize_marshalers_to_cs (): void {
     if (js_to_cs_marshalers.size == 0) {
         js_to_cs_marshalers.set(MarshalerType.Array, marshal_array_to_cs);
@@ -82,7 +84,8 @@ export function bind_arg_marshal_to_cs (sig: JSMarshalerType, marshaler_type: Ma
 
     const arg_offset = index * JavaScriptMarshalerArgSize;
     return (args: JSMarshalerArguments, value: any) => {
-        converter(<any>args + arg_offset, value, element_type, res_marshaler, arg1_marshaler, arg2_marshaler, arg3_marshaler);
+        // @ts-expect-error TS2352:
+        converter(add_offset(args, arg_offset) as JSMarshalerArgument, value, element_type, res_marshaler, arg1_marshaler, arg2_marshaler, arg3_marshaler);
     };
 }
 
@@ -388,8 +391,11 @@ export function marshal_cs_object_to_cs (arg: JSMarshalerArgument, value: any): 
                 set_arg_type(arg, MarshalerType.Double);
                 set_arg_f64(arg, value);
             } else if (js_type === "bigint") {
-                // we do it because not all bigint values could fit into Int64
-                throw new Error("NotImplementedException: bigint");
+                if (value < MIN_BIGINT64 || value > MAX_BIGINT64) {
+                    throw new Error(`bigint value ${value} does not fit in Int64`);
+                }
+                set_arg_type(arg, MarshalerType.BigInt64);
+                set_arg_i64_big(arg, value);
             } else if (js_type === "boolean") {
                 set_arg_type(arg, MarshalerType.Boolean);
                 set_arg_bool(arg, value);
@@ -456,7 +462,7 @@ export function marshal_array_to_cs_impl (arg: JSMarshalerArgument, value: Array
     } else {
         const element_size = array_element_size(element_type);
         mono_assert(element_size != -1, () => `Element type ${element_type} not supported`);
-        const length = value.length;
+        const length = value.length ?? 1;
         const buffer_length = element_size * length;
         const buffer_ptr = malloc(buffer_length) as any;
         if (element_type == MarshalerType.String) {

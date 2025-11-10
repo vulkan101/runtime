@@ -9,7 +9,6 @@
  * Copyright 2012 Xamarin Inc (http://www.xamarin.com)
  * Licensed under the MIT license. See LICENSE file in the project root for full license information.
  */
-
 #include <config.h>
 #include <glib.h>
 #include <string.h>
@@ -957,13 +956,11 @@ mono_gc_init (void)
 	mono_coop_mutex_init_recursive (&finalizer_mutex);
 	mono_os_mutex_init_recursive (&finalizable_objects_hash_lock);
 	finalizable_objects_hash = g_hash_table_new (mono_aligned_addr_hash, NULL);
-
 	mono_counters_register ("Minor GC collections", MONO_COUNTER_GC | MONO_COUNTER_INT, &mono_gc_stats.minor_gc_count);
 	mono_counters_register ("Major GC collections", MONO_COUNTER_GC | MONO_COUNTER_INT, &mono_gc_stats.major_gc_count);
 	mono_counters_register ("Minor GC time", MONO_COUNTER_GC | MONO_COUNTER_ULONG | MONO_COUNTER_TIME, &mono_gc_stats.minor_gc_time);
 	mono_counters_register ("Major GC time", MONO_COUNTER_GC | MONO_COUNTER_LONG | MONO_COUNTER_TIME, &mono_gc_stats.major_gc_time);
 	mono_counters_register ("Major GC time concurrent", MONO_COUNTER_GC | MONO_COUNTER_LONG | MONO_COUNTER_TIME, &mono_gc_stats.major_gc_time_concurrent);
-
 	mono_gc_base_init ();
 
 	if (mono_gc_is_disabled ()) {
@@ -981,7 +978,6 @@ mono_gc_init (void)
 
 	mono_coop_cond_init (&exited_cond);
 	mono_coop_sem_init (&finalizer_sem, 0);
-
 #ifndef LAZY_GC_THREAD_CREATION
 	if (!mono_runtime_get_no_exec ())
 		init_finalizer_thread ();

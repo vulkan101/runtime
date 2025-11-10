@@ -4089,7 +4089,7 @@ ves_icall_RuntimeType_GetConstructors_native (MonoQCallTypeHandle type_handle, g
 	if (m_type_is_byref (type)) {
 		return g_ptr_array_new ();
 	}
-
+	
 	MonoClass *startklass, *klass;
 	klass = startklass = mono_class_from_mono_type_internal (type);
 
@@ -4724,7 +4724,7 @@ ves_icall_System_Reflection_Assembly_InternalGetReferencedAssemblies (MonoReflec
 	MonoAssembly *assembly = MONO_HANDLE_GETVAL (assembly_h, assembly);
 	MonoImage *image = assembly->image;
 	int count;
-
+	
 	/* FIXME: metadata-update */
 
 	if (image_is_dynamic (assembly->image)) {
@@ -4737,12 +4737,11 @@ ves_icall_System_Reflection_Assembly_InternalGetReferencedAssemblies (MonoReflec
 	}
 
 	GPtrArray *result = g_ptr_array_sized_new (count);
-
 	for (int i = 0; i < count; i++) {
 		MonoAssemblyName *aname = create_referenced_assembly_name (image, i, error);
 		if (!is_ok (error))
 			break;
-		g_ptr_array_add (result, aname);
+		monoeg_g_ptr_array_add (result, aname);
 	}
 	return result;
 }
@@ -5061,6 +5060,7 @@ ves_icall_GetCurrentMethod (MonoError *error)
 static MonoMethod*
 mono_method_get_equivalent_method (MonoMethod *method, MonoClass *klass)
 {
+
 	int offset = -1, i;
 	if (method->is_inflated && ((MonoMethodInflated*)method)->context.method_inst) {
 		ERROR_DECL (error);
@@ -5099,7 +5099,7 @@ mono_method_get_equivalent_method (MonoMethod *method, MonoClass *klass)
 
 MonoReflectionMethodHandle
 ves_icall_System_Reflection_RuntimeMethodInfo_GetMethodFromHandleInternalType_native (MonoMethod *method, MonoType *type, MonoBoolean generic_check, MonoError *error)
-{
+{		
 	MonoClass *klass;
 	if (type && generic_check) {
 		klass = mono_class_from_mono_type_internal (type);
@@ -5114,7 +5114,7 @@ ves_icall_System_Reflection_RuntimeMethodInfo_GetMethodFromHandleInternalType_na
 	} else if (type)
 		klass = mono_class_from_mono_type_internal (type);
 	else
-		klass = method->klass;
+		klass = method->klass;		
 	return mono_method_get_object_handle (method, klass, error);
 }
 
@@ -6961,7 +6961,6 @@ mono_lookup_internal_call_full_with_flags (MonoMethod *method, gboolean warn_on_
 
 	mono_icall_lock ();
 	locked = TRUE;
-
 	res = g_hash_table_lookup (icall_hash, mname);
 	if (res) {
 		MonoIcallHashTableValue *value = (MonoIcallHashTableValue *)res;
@@ -7038,6 +7037,7 @@ mono_lookup_internal_call_full (MonoMethod *method, gboolean warn_on_missing, mo
 		*foreign = FALSE;
 
 	guint32 flags = MONO_ICALL_FLAGS_NONE;
+
 	gconstpointer addr = mono_lookup_internal_call_full_with_flags (method, warn_on_missing, &flags);
 
 	if (uses_handles && (flags & MONO_ICALL_FLAGS_USES_HANDLES))

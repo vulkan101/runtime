@@ -99,6 +99,7 @@ mono_install_icall_table_callbacks (const MonoIcallTableCallbacks *cb);
 #endif
 #endif
 
+
 #ifdef LINK_ICALLS
 
 #include "icall-table.h"
@@ -125,8 +126,8 @@ icall_table_lookup (MonoMethod *method, char *classname, char *methodname, char 
 	*out_flags = 0;
 
 	const char *image_name = mono_image_get_name (mono_class_get_image (mono_method_get_class (method)));
-
-#if defined(ICALL_TABLE_corlib)
+    
+#if defined(ICALL_TABLE_corlib)    
 	if (!strcmp (image_name, "System.Private.CoreLib")) {
 		indexes = corlib_icall_indexes;
 		indexes_size = sizeof (corlib_icall_indexes) / 4;
@@ -135,7 +136,7 @@ icall_table_lookup (MonoMethod *method, char *classname, char *methodname, char 
 		assert (sizeof (corlib_icall_indexes [0]) == 4);
 	}
 #endif
-#ifdef ICALL_TABLE_System
+#ifdef ICALL_TABLE_System    
 	if (!strcmp (image_name, "System")) {
 		indexes = System_icall_indexes;
 		indexes_size = sizeof (System_icall_indexes) / 4;
@@ -147,14 +148,13 @@ icall_table_lookup (MonoMethod *method, char *classname, char *methodname, char 
 
 	void *p = bsearch (&token_idx, indexes, indexes_size, 4, compare_int);
 	if (!p) {
-		return NULL;
+        return NULL;
 		printf ("wasm: Unable to lookup icall: %s\n", mono_method_get_name (method));
 		exit (1);
 	}
 
 	uint32_t idx = (int*)p - indexes;
-	*out_flags = flags [idx];
-
+	*out_flags = flags [idx];    
 	//printf ("ICALL: %s %x %d %d\n", methodname, token, idx, (int)(funcs [idx]));
 
 	return funcs [idx];
@@ -272,8 +272,7 @@ import_compare_name (const void *k1, const void *k2)
 static void*
 wasm_dl_symbol (void *handle, const char *name, char **err, void *user_data)
 {
-	assert (handle != sysglobal_native_handle);
-
+	assert (handle != sysglobal_native_handle);    
 #if WASM_SUPPORTS_DLOPEN
 	if (!wasm_dl_is_pinvoke_tables (handle)) {
 		return dlsym (handle, name);
@@ -282,8 +281,7 @@ wasm_dl_symbol (void *handle, const char *name, char **err, void *user_data)
 	PinvokeTable* index = (PinvokeTable*)handle;
 	PinvokeImport key = { name, NULL };
     PinvokeImport* result = (PinvokeImport *)bsearch(&key, index->imports, index->count, sizeof(PinvokeImport), import_compare_name);
-    if (!result) {
-        // *err = g_strdup_printf ("Symbol not found: %s", name);
+    if (!result) {        
         return NULL;
     }
     return result->func;
@@ -298,7 +296,7 @@ mono_wasm_load_runtime_common (int debug_level, MonoLogCallback log_callback, co
 
 	mono_dl_fallback_register (wasm_dl_load, wasm_dl_symbol, NULL, NULL);
 	mono_wasm_install_get_native_to_interp_tramp (get_native_to_interp);
-
+    
 #ifdef GEN_PINVOKE
 	mono_wasm_install_interp_to_native_callback (mono_wasm_interp_to_native_callback);
 #endif
@@ -328,10 +326,9 @@ mono_wasm_load_runtime_common (int debug_level, MonoLogCallback log_callback, co
 		interp_opts = "-all";
 		mono_wasm_enable_debugging (debug_level);
 	}
-#endif
-
+#endif    
 	init_icall_table ();
-
+    
 	mono_ee_interp_init (interp_opts);
 	mono_marshal_ilgen_init();
 	mono_method_builder_ilgen_init ();
@@ -340,15 +337,14 @@ mono_wasm_load_runtime_common (int debug_level, MonoLogCallback log_callback, co
 	mono_trace_init ();
 	mono_trace_set_log_handler (log_callback, NULL);
 	domain = mono_jit_init_version ("mono", NULL);
-	mono_thread_set_main (mono_thread_current ());
-
+	mono_thread_set_main (mono_thread_current ());    
 	return domain;
 }
 
 // TODO https://github.com/dotnet/runtime/issues/98366
 EMSCRIPTEN_KEEPALIVE MonoAssembly*
 mono_wasm_assembly_load (const char *name)
-{
+{    
 	MonoAssembly *res;
 	assert (name);
 	MonoImageOpenStatus status;
@@ -363,7 +359,7 @@ mono_wasm_assembly_load (const char *name)
 // TODO https://github.com/dotnet/runtime/issues/98366
 EMSCRIPTEN_KEEPALIVE MonoClass*
 mono_wasm_assembly_find_class (MonoAssembly *assembly, const char *namespace, const char *name)
-{
+{    
 	assert (assembly);
 	MonoClass *result;
 	MONO_ENTER_GC_UNSAFE;
@@ -375,7 +371,7 @@ mono_wasm_assembly_find_class (MonoAssembly *assembly, const char *namespace, co
 // TODO https://github.com/dotnet/runtime/issues/98366
 EMSCRIPTEN_KEEPALIVE MonoMethod*
 mono_wasm_assembly_find_method (MonoClass *klass, const char *name, int arguments)
-{
+{    
 	assert (klass);
 	MonoMethod* result;
 	MONO_ENTER_GC_UNSAFE;
@@ -386,7 +382,7 @@ mono_wasm_assembly_find_method (MonoClass *klass, const char *name, int argument
 
 MonoMethod*
 mono_wasm_get_method_matching (MonoImage *image, uint32_t token, MonoClass *klass, const char* name, int param_count)
-{
+{    
 	MonoMethod *result = NULL;
 	MONO_ENTER_GC_UNSAFE;
 	MonoMethod *method = mono_get_method (image, token, klass);
@@ -414,7 +410,7 @@ mono_wasm_get_method_matching (MonoImage *image, uint32_t token, MonoClass *klas
  */
 void
 mono_wasm_marshal_get_managed_wrapper (const char* assemblyName, const char* namespaceName, const char* typeName, const char* methodName, uint32_t token, int param_count)
-{
+{    
 	MonoError error;
 	mono_error_init (&error);
 	MONO_ENTER_GC_UNSAFE;

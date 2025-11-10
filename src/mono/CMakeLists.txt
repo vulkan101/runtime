@@ -121,7 +121,6 @@ endif()
 ######################################
 # AOT CROSS COMPILER SUPPORT
 ######################################
-
 if(NOT AOT_TARGET_TRIPLE STREQUAL "")
   set(MONO_CROSS_COMPILE 1)
   if(NOT AOT_OFFSETS_FILE STREQUAL "")
@@ -144,6 +143,9 @@ if(NOT AOT_TARGET_TRIPLE STREQUAL "")
   elseif(AOT_TARGET_TRIPLE STREQUAL "wasm32-unknown-none")
     set(TARGET_SYSTEM_NAME "emscripten")
     set(TARGET_ARCH "wasm")
+  elseif(AOT_TARGET_TRIPLE STREQUAL "wasm64-unknown-none")
+    set(TARGET_SYSTEM_NAME "emscripten")
+    set(TARGET_ARCH "wasm64")
   elseif(AOT_TARGET_TRIPLE STREQUAL "wasm32-unknown-wasip2")
     set(TARGET_SYSTEM_NAME "wasi")
     set(TARGET_ARCH "wasm")
@@ -169,7 +171,6 @@ if(NOT AOT_TARGET_TRIPLE STREQUAL "")
     message(FATAL_ERROR "AOT target '${AOT_TARGET_TRIPLE}' not supported.")
   endif()
 endif()
-
 ######################################
 # HOST OS CHECKS
 ######################################
@@ -403,7 +404,7 @@ elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "riscv64")
   set(HOST_RISCV64 1)
 elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "s390x")
   set(HOST_S390X 1)
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "wasm" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "wasm32")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "wasm" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "wasm32" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "wasm64")
   set(HOST_WASM 1)
 elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "ppc64le")
   set(HOST_POWERPC 1)
@@ -416,8 +417,20 @@ endif()
 # TARGET ARCH CHECKS
 ######################################
 
+if (CMAKE_C_FLAGS MATCHES "wasm64")
+    set(USES_MEM64 TRUE)    
+endif()
+
+if (CMAKE_C_FLAGS MATCHES "MEMORY64")
+    set(USES_MEM64 TRUE)
+endif()
+
 if(NOT TARGET_ARCH)
-  set(TARGET_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+  if (CMAKE_SYSTEM_PROCESSOR STREQUAL "wasm" AND USES_MEM64)
+    set(TARGET_ARCH "wasm64")    
+  else()
+    set(TARGET_ARCH "${CMAKE_SYSTEM_PROCESSOR}")    
+  endif()  
 endif()
 
 # Unify naming
@@ -481,11 +494,16 @@ elseif(TARGET_ARCH STREQUAL "s390x")
   set(MONO_ARCHITECTURE "\"s390x\"")
   set(TARGET_SIZEOF_VOID_P 8)
   set(SIZEOF_REGISTER 8)
-elseif(TARGET_ARCH STREQUAL "wasm" OR TARGET_ARCH STREQUAL "wasm32")
+elseif(TARGET_ARCH STREQUAL "wasm" OR TARGET_ARCH STREQUAL "wasm32")  
   set(TARGET_WASM 1)
   set(MONO_ARCHITECTURE "\"wasm\"")
   set(TARGET_SIZEOF_VOID_P 4)
   set(SIZEOF_REGISTER 4)
+elseif(TARGET_ARCH STREQUAL "wasm64" )  
+  set(TARGET_WASM 1)
+  set(MONO_ARCHITECTURE "\"wasm\"")
+  set(TARGET_SIZEOF_VOID_P 8)  
+  set(SIZEOF_REGISTER 8)
 elseif(TARGET_ARCH STREQUAL "ppc64le")
   set(TARGET_POWERPC 1)
   set(TARGET_POWERPC64 1)
@@ -587,6 +605,8 @@ if(LLVM_PREFIX)
     set(llvm_codegen_libs "armcodegen")
   elseif(TARGET_ARCH STREQUAL "wasm")
     set(llvm_codegen_libs "")
+  elseif(TARGET_ARCH STREQUAL "wasm64")
+    set(llvm_codegen_libs "")
   else()
     message(FATAL_ERROR "FIXME: ${TARGET_ARCH}")
   endif()
@@ -657,7 +677,7 @@ if(LLVM_PREFIX)
 
   # Check codegen libs and add needed libraries.
   set(llvm_extra ${MONO_llvm_extra_libs_${llvm_codegen_libs}})
-  if("${llvm_extra}" STREQUAL "" AND NOT "${TARGET_ARCH}" STREQUAL "wasm")
+  if("${llvm_extra}" STREQUAL "" AND NOT "${TARGET_ARCH}" STREQUAL "wasm" AND NOT "${TARGET_ARCH}" STREQUAL "wasm64" )
     message(FATAL_ERROR "FIXME: ${TARGET_ARCH}")
   endif()
 

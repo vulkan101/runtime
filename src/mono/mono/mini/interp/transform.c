@@ -32,6 +32,7 @@
 #include "mintops.h"
 #include "interp-internals.h"
 #include "interp.h"
+#include "interp-icalls.h"
 #include "transform.h"
 #include "tiering.h"
 #include "interp-pgo.h"
@@ -117,7 +118,7 @@ interp_add_ins_explicit (TransformData *td, int opcode, int len)
 		td->cbb->first_ins = new_inst;
 	td->cbb->last_ins = new_inst;
 	// We should delete this, but is currently used widely to set the args of an instruction
-	td->last_ins = new_inst;
+	td->last_ins = new_inst;	
 	return new_inst;
 }
 
@@ -315,7 +316,7 @@ enum_type:
 	case MONO_TYPE_U:
 	case MONO_TYPE_PTR:
 	case MONO_TYPE_FNPTR:
-		return MINT_TYPE_I;
+		return MINT_TYPE_I; // will be I8 on 64-bit platforms, I4 otherwise
 	case MONO_TYPE_R4:
 		return MINT_TYPE_R4;
 	case MONO_TYPE_I8:
@@ -442,7 +443,7 @@ interp_create_var_explicit (TransformData *td, MonoType *type, int size)
 	local->bb_index = -1;
 	local->ext_index = -1;
 
-	td->vars_size++;
+	td->vars_size++;	
 	return td->vars_size - 1;
 
 }
@@ -481,7 +482,7 @@ interp_create_stack_var (TransformData *td, StackInfo *sp, int type_size)
 	int local = interp_create_var_explicit (td, get_type_from_stack (sp->type, sp->klass), type_size);
 
 	td->vars [local].execution_stack = TRUE;
-	sp->var = local;
+	sp->var = local;	
 }
 
 static void
@@ -1795,8 +1796,7 @@ interp_emit_ldelema (TransformData *td, MonoClass *array_class, MonoClass *check
 {
 	MonoClass *element_class = m_class_get_element_class (array_class);
 	int rank = m_class_get_rank (array_class);
-	int size = mono_class_array_element_size (element_class);
-
+	int size = mono_class_array_element_size (element_class);	
 	gboolean bounded = m_class_get_byval_arg (array_class) ? m_class_get_byval_arg (array_class)->type == MONO_TYPE_ARRAY : FALSE;
 
 	td->sp -= rank + 1;
@@ -2753,9 +2753,6 @@ interp_transform_internal_calls (MonoMethod *method, MonoMethod *target_method, 
 	return target_method;
 }
 
-static gboolean
-interp_type_as_ptr (MonoType *tp);
-
 /* Return whenever TYPE represents a vtype with only one scalar member */
 static gboolean
 is_scalar_vtype (MonoType *type)
@@ -2789,129 +2786,182 @@ is_scalar_vtype (MonoType *type)
 
 	return TRUE;
 }
+static gboolean
+interp_type_as_ptr_test (MonoType *tp) ;
 
 static gboolean
-interp_type_as_ptr (MonoType *tp)
+is_scalar_vtype_test(MonoType *type)
 {
-	if (MONO_TYPE_IS_POINTER (tp))
-		return TRUE;
-	if (MONO_TYPE_IS_REFERENCE (tp))
-		return TRUE;
-	if ((tp)->type == MONO_TYPE_I4)
-		return TRUE;
-#if SIZEOF_VOID_P == 8
-	if ((tp)->type == MONO_TYPE_I8 || (tp)->type == MONO_TYPE_U8)
-		return TRUE;
-#endif
-	if ((tp)->type == MONO_TYPE_BOOLEAN)
-		return TRUE;
-	if ((tp)->type == MONO_TYPE_CHAR)
-		return TRUE;
-	if ((tp)->type == MONO_TYPE_VALUETYPE && m_class_is_enumtype (m_type_data_get_klass_unchecked (tp)))
-		return TRUE;
-	if (is_scalar_vtype (tp))
-		return TRUE;
-	return FALSE;
+	MonoClass *klass;
+	MonoClassField *field;
+	gpointer iter;
+
+	if (!MONO_TYPE_ISSTRUCT (type))
+		return FALSE;
+	klass = mono_class_from_mono_type_internal (type);
+	mono_class_init_internal (klass);
+
+	int size = mono_class_value_size (klass, NULL);
+	if (size == 0 || size > SIZEOF_VOID_P)
+		return FALSE;
+
+	iter = NULL;
+	int nfields = 0;
+	field = NULL;
+	while ((field = mono_class_get_fields_internal (klass, &iter))) {
+		if (field->type->attrs & FIELD_ATTRIBUTE_STATIC)
+			continue;
+		nfields ++;
+		if (nfields > 1)
+			return FALSE;
+		MonoType *t = mini_get_underlying_type (field->type);
+		if (!interp_type_as_ptr_test (t))
+			return FALSE;
+	}
+
+	return TRUE;
 }
 
 #define INTERP_TYPE_AS_PTR(tp) interp_type_as_ptr (tp)
+#define DEBUG_ENCODE_SIGNATURE 0
+#define ENCODE_4BYTE 0b01
+#define ENCODE_8BYTE 0b10
+
+/* encode with first parameter always shifted left 12 bits */
+static uint16_t encode_signature(const int* params, int param_count, int return_type) {
+    uint16_t encoded = 0;
+    // parameters must be either 4 or 8. No params implcitly encodes V 
+    // a zero in any position here means the type is not a pointer type and not suitable for icalls
+    for (int i = 0; i < param_count && i < MAX_SIG_PARAMS; ++i) {
+	if (!(params[i]))
+		return MINT_ICALLSIG_MAX;
+        uint16_t code = (params[i] == SIG_PARAM_4B) ? ENCODE_4BYTE : ENCODE_8BYTE;
+        encoded |= (code << (2 * (MAX_SIG_PARAMS - i)));
+    }    
+
+    // Encode return type in the last 2 bits
+    uint16_t ret_code = (return_type == SIG_PARAM_4B) ? ENCODE_4BYTE : (return_type == SIG_PARAM_8B) ? ENCODE_8BYTE : SIG_PARAM_VOID;
+    encoded |= ret_code;
+    #ifdef DEBUG_ENCODE_SIGNATURE
+    {
+	    // 1 elements per param + 2 for _return type + 1 for null terminator
+	    char buff[MAX_SIG_PARAMS + 3] = {};
+	    int offset =0;
+	    for (int i = 0; i < param_count; i++)    
+		    sprintf(buff + i, "%d", params[i]);    
+	    if (!param_count)
+		    offset = sprintf(buff, "V");
+
+	    if( return_type)
+		sprintf(buff + param_count + offset, "_%d", return_type);
+	    else 
+		sprintf(buff + param_count + offset, "_V");
+    }
+    #endif
+    return encoded;
+}
+static 
+void decode_signature(uint16_t encoded, int* params_out, int* param_count_out, int* return_type_out) {
+    int count = 0;
+
+    for (int i = 0; i < MAX_SIG_PARAMS; ++i) {
+        uint16_t code = (encoded >> (2 * (MAX_SIG_PARAMS - i))) & 0b11;
+        if (code == ENCODE_4BYTE) {
+            params_out[count++] = 4;
+        }
+        else if (code == ENCODE_8BYTE) {
+            params_out[count++] = 8;
+        }
+        else {
+            break; // Stop at first unused param
+        }
+    }
+
+    *param_count_out = count;
+
+    uint16_t ret_code = encoded & 0b11;
+    if (ret_code == ENCODE_4BYTE) {
+        *return_type_out = 4;
+    }
+    else if (ret_code == ENCODE_8BYTE) {
+        *return_type_out = 8;
+    }
+    else {
+        *return_type_out = 0;
+    }
+}
+
+#define GET_PARAM_SIZE(tp)  (interp_type_as_ptr8(tp) ? SIG_PARAM_8B : interp_type_as_ptr4(tp) ? SIG_PARAM_4B : SIG_PARAM_VOID)
+
+gboolean
+interp_type_as_ptr_test (MonoType *tp)
+{
+	if (MONO_TYPE_IS_POINTER (tp)) {
+		return TRUE;
+	}
+	if (MONO_TYPE_IS_REFERENCE (tp)) {
+		return TRUE;
+	}
+	if ((tp)->type == MONO_TYPE_I4) {
+		return TRUE;
+	}
+#if SIZEOF_VOID_P == 8
+	if ((tp)->type == MONO_TYPE_I8 || (tp)->type == MONO_TYPE_U8) {
+		return TRUE;
+	}
+#endif
+	if ((tp)->type == MONO_TYPE_BOOLEAN) {
+		return TRUE;
+	}
+	if ((tp)->type == MONO_TYPE_CHAR) {
+		return TRUE;
+	}
+	if ((tp)->type == MONO_TYPE_VALUETYPE && m_class_is_enumtype (m_type_data_get_klass_unchecked (tp))) {
+		return TRUE;
+	}
+	if (is_scalar_vtype (tp)) {
+		return TRUE;
+	}
+	else 
+
+	if (is_scalar_vtype_test (tp)) {
+		return TRUE;
+	}
+	else 
+
+	return FALSE;
+}
 
 static MintICallSig
 interp_get_icall_sig (MonoMethodSignature *sig)
 {
 	MintICallSig op = MINT_ICALLSIG_MAX;
-	switch (sig->param_count) {
-	case 0:
-		if (MONO_TYPE_IS_VOID (sig->ret))
-			op = MINT_ICALLSIG_V_V;
-		else if (INTERP_TYPE_AS_PTR (sig->ret))
-			op = MINT_ICALLSIG_V_P;
-		break;
-	case 1:
-		if (MONO_TYPE_IS_VOID (sig->ret)) {
-			if (INTERP_TYPE_AS_PTR (sig->params [0]))
-				op = MINT_ICALLSIG_P_V;
-		} else if (INTERP_TYPE_AS_PTR (sig->ret)) {
-			if (INTERP_TYPE_AS_PTR (sig->params [0]))
-				op = MINT_ICALLSIG_P_P;
-		}
-		break;
-	case 2:
-		if (MONO_TYPE_IS_VOID (sig->ret)) {
-			if (INTERP_TYPE_AS_PTR (sig->params [0]) &&
-					INTERP_TYPE_AS_PTR (sig->params [1]))
-				op = MINT_ICALLSIG_PP_V;
-		} else if (INTERP_TYPE_AS_PTR (sig->ret)) {
-			if (INTERP_TYPE_AS_PTR (sig->params [0]) &&
-					INTERP_TYPE_AS_PTR (sig->params [1]))
-				op = MINT_ICALLSIG_PP_P;
-		}
-		break;
-	case 3:
-		if (MONO_TYPE_IS_VOID (sig->ret)) {
-			if (INTERP_TYPE_AS_PTR (sig->params [0]) &&
-					INTERP_TYPE_AS_PTR (sig->params [1]) &&
-					INTERP_TYPE_AS_PTR (sig->params [2]))
-				op = MINT_ICALLSIG_PPP_V;
-		} else if (INTERP_TYPE_AS_PTR (sig->ret)) {
-			if (INTERP_TYPE_AS_PTR (sig->params [0]) &&
-					INTERP_TYPE_AS_PTR (sig->params [1]) &&
-					INTERP_TYPE_AS_PTR (sig->params [2]))
-				op = MINT_ICALLSIG_PPP_P;
-		}
-		break;
-	case 4:
-		if (MONO_TYPE_IS_VOID (sig->ret)) {
-			if (INTERP_TYPE_AS_PTR (sig->params [0]) &&
-					INTERP_TYPE_AS_PTR (sig->params [1]) &&
-					INTERP_TYPE_AS_PTR (sig->params [2]) &&
-					INTERP_TYPE_AS_PTR (sig->params [3]))
-				op = MINT_ICALLSIG_PPPP_V;
-		} else if (INTERP_TYPE_AS_PTR (sig->ret)) {
-			if (INTERP_TYPE_AS_PTR (sig->params [0]) &&
-					INTERP_TYPE_AS_PTR (sig->params [1]) &&
-					INTERP_TYPE_AS_PTR (sig->params [2]) &&
-					INTERP_TYPE_AS_PTR (sig->params [3]))
-				op = MINT_ICALLSIG_PPPP_P;
-		}
-		break;
-	case 5:
-		if (MONO_TYPE_IS_VOID (sig->ret)) {
-			if (INTERP_TYPE_AS_PTR (sig->params [0]) &&
-					INTERP_TYPE_AS_PTR (sig->params [1]) &&
-					INTERP_TYPE_AS_PTR (sig->params [2]) &&
-					INTERP_TYPE_AS_PTR (sig->params [3]) &&
-					INTERP_TYPE_AS_PTR (sig->params [4]))
-				op = MINT_ICALLSIG_PPPPP_V;
-		} else if (INTERP_TYPE_AS_PTR (sig->ret)) {
-			if (INTERP_TYPE_AS_PTR (sig->params [0]) &&
-					INTERP_TYPE_AS_PTR (sig->params [1]) &&
-					INTERP_TYPE_AS_PTR (sig->params [2]) &&
-					INTERP_TYPE_AS_PTR (sig->params [3]) &&
-					INTERP_TYPE_AS_PTR (sig->params [4]))
-				op = MINT_ICALLSIG_PPPPP_P;
-		}
-		break;
-	case 6:
-		if (MONO_TYPE_IS_VOID (sig->ret)) {
-			if (INTERP_TYPE_AS_PTR (sig->params [0]) &&
-					INTERP_TYPE_AS_PTR (sig->params [1]) &&
-					INTERP_TYPE_AS_PTR (sig->params [2]) &&
-					INTERP_TYPE_AS_PTR (sig->params [3]) &&
-					INTERP_TYPE_AS_PTR (sig->params [4]) &&
-					INTERP_TYPE_AS_PTR (sig->params [5]))
-				op = MINT_ICALLSIG_PPPPPP_V;
-		} else if (INTERP_TYPE_AS_PTR (sig->ret)) {
-			if (INTERP_TYPE_AS_PTR (sig->params [0]) &&
-					INTERP_TYPE_AS_PTR (sig->params [1]) &&
-					INTERP_TYPE_AS_PTR (sig->params [2]) &&
-					INTERP_TYPE_AS_PTR (sig->params [3]) &&
-					INTERP_TYPE_AS_PTR (sig->params [4]) &&
-					INTERP_TYPE_AS_PTR (sig->params [5]))
-				op = MINT_ICALLSIG_PPPPPP_P;
-		}
-		break;
+	int params[MAX_SIG_PARAMS];
+	if (sig->param_count > MAX_SIG_PARAMS)
+	{
+		return MINT_ICALLSIG_MAX; 
 	}
+	for (int i = 0; i < sig->param_count && i < MAX_SIG_PARAMS; ++i) {
+		MonoType *tp = sig->params[i];
+		params[i] =  GET_PARAM_SIZE(tp);			
+		if (params[i] == 0) // this is ok but check logic against old method
+		{
+			gboolean isPtrOld = interp_type_as_ptr_test(tp);					
+			if (isPtrOld)
+			{
+				// error
+				assert(0 && "interp_get_icall_sig: type_as_ptr mismatch between old and new method");
+			}
+			else
+				return MINT_ICALLSIG_MAX; // not a pointer type - double check			
+		}		
+	}	
+	int returnType = GET_PARAM_SIZE(sig->ret);
+	if (returnType == 0 && sig->ret->type != MONO_TYPE_VOID) 
+	{
+		return MINT_ICALLSIG_MAX; 
+	}	
+	op = encode_signature(params, sig->param_count, returnType);
 	return op;
 }
 
@@ -3079,9 +3129,8 @@ interp_inline_method (TransformData *td, MonoMethod *target_method, MonoMethodHe
 			td->aggressive_inlining = TRUE;
 	}
 	if (td->verbose_level)
-		g_print ("Inline start method %s.%s\n", m_class_get_name (target_method->klass), target_method->name);
-
-	td->inline_depth++;
+		g_print ("Inline start method %s.%s\n", m_class_get_name (target_method->klass), target_method->name);		
+	td->inline_depth++;	
 	ret = generate_code (td, target_method, header, generic_context, error);
 	td->inline_depth--;
 
@@ -5265,7 +5314,7 @@ generate_code (TransformData *td, MonoMethod *method, MonoMethodHeader *header, 
 	original_bb = bb = mono_basic_block_split (method, error, header);
 	goto_if_nok (error, exit);
 	g_assert (bb);
-
+			
 	td->il_code = header->code;
 	td->in_start = td->ip = header->code;
 	end = td->ip + header->code_size;
@@ -5401,7 +5450,7 @@ generate_code (TransformData *td, MonoMethod *method, MonoMethodHeader *header, 
 		arg_locals = (guint32*) g_malloc ((!!signature->hasthis + signature->param_count) * sizeof (guint32));
 		/* Allocate locals to store inlined method args from stack */
 		for (int i = signature->param_count - 1; i >= 0; i--) {
-			MonoType *type = get_type_from_stack (td->sp [-1].type, td->sp [-1].klass);
+			MonoType *type = get_type_from_stack (td->sp [-1].type, td->sp [-1].klass);			
 			local = interp_create_var (td, type);
 			arg_locals [i + !!signature->hasthis] = local;
 			store_local (td, local);
@@ -9920,8 +9969,7 @@ mono_interp_transform_method (InterpMethod *imethod, ThreadContext *context, Mon
 	if (mono_class_is_open_constructed_type (m_class_get_byval_arg (method->klass))) {
 		mono_error_set_invalid_operation (error, "%s", "Could not execute the method because the containing type is not fully instantiated.");
 		return;
-	}
-
+	}	
 	// g_printerr ("TRANSFORM(0x%016lx): begin %s::%s\n", mono_thread_current (), method->klass->name, method->name);
 	method_class_vt = mono_class_vtable_checked (imethod->method->klass, error);
 	return_if_nok (error);

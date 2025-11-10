@@ -54,7 +54,6 @@ export function export_internal (): any {
         mono_wasm_debugger_attached,
         mono_wasm_runtime_is_ready: runtimeHelpers.mono_wasm_runtime_is_ready,
         mono_wasm_get_func_id_to_name_mappings,
-
         // interop
         get_property,
         set_property,

@@ -14,7 +14,7 @@ namespace Sample
         public static async Task<int> Main(string[] args)
         {
             Console.WriteLine("Hello, World!");
-
+            
             var rand = new Random();
             Console.WriteLine("Today's lucky number is " + rand.Next(100) + " and " + Guid.NewGuid());
 
@@ -43,7 +43,7 @@ namespace Sample
 
         [LibraryImport("fibonacci")]
         public static partial int Fibonacci(int n);
-
+        
         [JSImport("Sample.Test.add", "main.js")]
         internal static partial int Add(int a, int b);
 
@@ -53,22 +53,23 @@ namespace Sample
 
         [JSExport]
         internal static async Task PrintMeaning(Task<int> meaningPromise)
-        {
+        {            
             Console.WriteLine("Meaning of life is " + await meaningPromise);
         }
-
+        
         [JSExport]
         internal static int TestMeaning()
-        {
+        {            
             // call to C code via [DllImport]
             var half = Fibonacci(8);
+                   
             // call back to JS via [JSImport]
             return Add(half, half);
         }
 
         [JSExport]
         internal static void SillyLoop()
-        {
+        {            
             // this silly method will generate few sample points for the profiler
             for (int i = 1; i <= 60; i ++)
             {

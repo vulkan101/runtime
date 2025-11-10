@@ -36,6 +36,10 @@ else()
     set(utils_platform_sources ${utils_unix_sources})
 endif()
 
+if(HOST_WASM AND USES_MEM64)
+    set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -DMEMORY64 --target=wasm64")    
+endif()
+
 set(utils_common_sources
     mono-sha1.c
     mono-logger.c

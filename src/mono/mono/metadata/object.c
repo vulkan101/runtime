@@ -57,7 +57,6 @@
 #include "monitor.h"
 #include "icall-decl.h"
 #include "icall-signatures.h"
-
 #if _MSC_VER
 #pragma warning(disable:4312) // FIXME pointer cast to different size
 #endif
@@ -2559,6 +2558,7 @@ mono_class_get_virtual_method (MonoClass *klass, MonoMethod *method, MonoError *
 static MonoObject*
 do_runtime_invoke (MonoMethod *method, void *obj, void **params, MonoObject **exc, MonoError *error)
 {
+
 	MONO_REQ_GC_UNSAFE_MODE;
 
 	MonoObject *result = NULL;
@@ -2568,7 +2568,7 @@ do_runtime_invoke (MonoMethod *method, void *obj, void **params, MonoObject **ex
 	error_init (error);
 
 	MONO_PROFILER_RAISE (method_begin_invoke, (method));
-
+	
 	result = callbacks.runtime_invoke (method, obj, params, exc, error);
 
 	MONO_PROFILER_RAISE (method_end_invoke, (method));
@@ -7237,7 +7237,6 @@ mono_utf16_to_utf8len (const gunichar2 *s, gsize slength, gsize *utf8_length, Mo
 
 	if (!slength)
 		return g_strdup ("");
-
 	as = g_utf16_to_utf8 (s, (glong)slength, NULL, &written, &gerror);
 	*utf8_length = written;
 	if (gerror) {
@@ -7275,7 +7274,6 @@ char *
 mono_string_to_utf8_checked_internal (MonoString *s, MonoError *error)
 {
 	MONO_REQ_GC_UNSAFE_MODE;
-
 	error_init (error);
 
 	if (s == NULL)
@@ -7283,7 +7281,6 @@ mono_string_to_utf8_checked_internal (MonoString *s, MonoError *error)
 
 	if (!s->length)
 		return g_strdup ("");
-
 	return mono_utf16_to_utf8 (mono_string_chars_internal (s), s->length, error);
 }
 
@@ -7995,8 +7992,7 @@ mono_class_value_size (MonoClass *klass, guint32 *align)
 
 	g_assert (size >= 0);
 	if (align)
-		*align = m_class_get_min_align (klass);
-
+		*align = m_class_get_min_align (klass);	
 	return size;
 }
 

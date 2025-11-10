@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #include <emscripten.h>
 #include <emscripten/stack.h>
+#include <emscripten/console.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -11,6 +12,7 @@
 #include <math.h>
 #include <dlfcn.h>
 #include <sys/stat.h>
+
 
 #include <mono/metadata/appdomain.h>
 #include <mono/metadata/assembly.h>
@@ -22,6 +24,7 @@
 #include <mono/metadata/mono-gc.h>
 #include <mono/metadata/object.h>
 #include <mono/metadata/debug-helpers.h>
+
 // FIXME: unavailable in emscripten
 // #include <mono/metadata/gc-internals.h>
 
@@ -74,10 +77,24 @@ wasm_trace_logger (const char *log_domain, const char *log_level, const char *me
 		exit (1);
 }
 
+#ifndef SIZEOF_VOID_P
+#define SIZEOF_VOID_P @SIZEOF_VOID_P@
+#endif 
+
+#if SIZEOF_VOID_P == 4
 typedef uint32_t target_mword;
+typedef int32_t d_handle;
+#elif SIZEOF_VOID_P == 8
+typedef uint64_t target_mword;
+typedef int64_t d_handle;
+#else
+typedef uint32_t target_mword;
+typedef int32_t d_handle;
+#endif
+
 typedef target_mword SgenDescriptor;
 typedef SgenDescriptor MonoGCDescriptor;
-MONO_API int   mono_gc_register_root (char *start, size_t size, MonoGCDescriptor descr, MonoGCRootSource source, void *key, const char *msg);
+MONO_API int mono_gc_register_root (char *start, size_t size, MonoGCDescriptor descr, MonoGCRootSource source, void *key, const char *msg);
 void  mono_gc_deregister_root (char* addr);
 
 EMSCRIPTEN_KEEPALIVE int
@@ -116,7 +133,7 @@ mono_wasm_add_assembly (const char *name, const unsigned char *data, unsigned in
 		return 1;
 	}
 	char *assembly_name = strdup (name);
-	assert (assembly_name);
+	assert (assembly_name);    
 	mono_bundled_resources_add_assembly_resource (assembly_name, assembly_name, data, size, bundled_resources_free_func, assembly_name);
 	return mono_has_pdb_checksum ((char*)data, size);
 }
@@ -340,7 +357,7 @@ mono_wasm_string_from_utf16_ref (const mono_unichar2 * chars, int length, MonoSt
 	} else {
 		mono_gc_wbarrier_generic_store_atomic(result, NULL);
 	}
-	MONO_EXIT_GC_UNSAFE;
+	MONO_EXIT_GC_UNSAFE;    
 }
 
 EMSCRIPTEN_KEEPALIVE int
@@ -367,10 +384,11 @@ mono_wasm_set_main_args (int argc, char* argv[])
 	mono_runtime_set_main_args (argc, argv);
 }
 
-EMSCRIPTEN_KEEPALIVE int
+EMSCRIPTEN_KEEPALIVE d_handle
 mono_wasm_strdup (const char *s)
-{
-	return (int)strdup (s);
+{    
+    char* result = strdup(s);    
+	return (d_handle)result;
 }
 
 EMSCRIPTEN_KEEPALIVE void

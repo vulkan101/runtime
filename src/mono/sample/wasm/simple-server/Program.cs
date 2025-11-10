@@ -94,7 +94,7 @@ namespace HttpServer
 
         private bool StartServer()
         {
-            var port = 8000 + Random.Shared.Next(1000);
+            var port = 8000 + Random.Shared.Next(1000);            
             var listener = new HttpListener();
             var url = $"http://localhost:{port}/";
             listener.Prefixes.Add(url);

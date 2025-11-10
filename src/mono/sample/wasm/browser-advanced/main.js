@@ -93,6 +93,7 @@ try {
 
     const config = getConfig();
     const exports = await getAssemblyExports(config.mainAssemblyName);
+    
     const meaning = exports.Sample.Test.TestMeaning();
     if (typeof Module.GL !== "object") {
         exit(-10, "Can't find GL");
@@ -104,10 +105,9 @@ try {
     if (!exports.Sample.Test.IsPrime(meaning)) {
         document.getElementById("out").innerHTML = `${meaning} as computed on dotnet ver ${runtimeBuildInfo.productVersion}`;
     }
-
+    
     const deepMeaning = new Promise(resolve => setTimeout(() => resolve(meaning), 100));
-    exports.Sample.Test.PrintMeaning(deepMeaning);
-
+    exports.Sample.Test.PrintMeaning(deepMeaning);    
     exports.Sample.Test.SillyLoop();
 
     let exit_code = await runMain(config.mainAssemblyName, []);

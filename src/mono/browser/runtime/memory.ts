@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 import WasmEnableThreads from "consts:wasmEnableThreads";
-
+import isWasm64 from "consts:isWasm64";
 import { MemOffset, NumberOrPointer } from "./types/internal";
 import { VoidPtr, CharPtr } from "./types/emscripten";
 import cwraps, { I52Error } from "./cwraps";
@@ -37,9 +37,15 @@ export function temp_malloc (size: number): VoidPtr {
     return result;
 }
 
-// returns always uint32 (not negative Number)
 export function malloc (size: number): VoidPtr {
-    return (Module._malloc(size) as any >>> 0) as any;
+    const ptr = Module._malloc(size) as any;
+    if (isWasm64) {
+        // NB: emscripten's malloc currently returns a number, not a bigint
+        return ptr;
+    } else {
+        // This bitshift ensures the value is returned as a 32-bit unsigned integer.
+        return (ptr >>> 0) as any;
+    }
 }
 
 export function free (ptr: VoidPtr) {
@@ -271,7 +277,16 @@ export function getI16_local (localView: Int16Array, offset: MemOffset): number 
 
 export function getI32 (offset: MemOffset): number {
     receiveWorkerHeapViews();
-    return Module.HEAP32[<any>offset >>> 2];
+    let n: number;
+    if (typeof offset === "bigint") {
+        if (offset > BigInt(Number.MAX_SAFE_INTEGER)) {
+            throw new Error("Offset too large for JS typed arrays");
+        }
+        n = Number(offset);
+    } else {
+        n = offset as number;
+    }
+    return Module.HEAP32[<any>n >>> 2];
 }
 
 // does not check for growable heap
@@ -394,6 +409,18 @@ export function compareExchangeI32 (offset: MemOffset, value: number, expected: 
     return globalThis.Atomics.compareExchange(localHeapViewI32(), <any>offset >>> 2, expected, value);
 }
 
+export function compareExchangeI64 (offset: MemOffset, value: bigint, expected: bigint): bigint {
+    mono_assert((<any>offset & 7) === 0, () => `compareExchangeI64: offset must be 8-byte aligned, got ${offset}`);
+    if (!WasmEnableThreads) {
+        const actual = getI64Big(offset);
+        if (actual === expected) {
+            setI64Big(offset, value);
+        }
+        return actual;
+    }
+    return globalThis.Atomics.compareExchange(localHeapViewI64Big(), <any>offset >>> 3, expected, value);
+}
+
 export function storeI32 (offset: MemOffset, value: number): void {
     mono_assert((<any>offset & 3) === 0, () => `storeI32: offset must be 4-byte aligned, got ${offset}`);
     if (!WasmEnableThreads) return setI32(offset, value);
@@ -511,6 +538,10 @@ export function forceThreadMemoryViewRefresh () {
     }
 }
 
-export function fixupPointer (signature: any, shiftAmount: number): any {
-    return ((signature as any) >>> shiftAmount) as any;
+export function fixupPointer (signature: any, shiftAmount: any): any {
+    if (typeof signature === "bigint") {
+        return signature >> BigInt(shiftAmount);
+    } else {
+        return (signature as number) >>> shiftAmount;
+    }
 }

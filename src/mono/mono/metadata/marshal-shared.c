@@ -732,7 +732,6 @@ mono_marshal_shared_emit_ptr_to_object_conv (MonoMethodBuilder *mb, MonoType *ty
 	case MONO_MARSHAL_CONV_ARRAY_SAVEARRAY:
 	default: {
 		char *msg = g_strdup_printf ("marshaling conversion %d not implemented", conv);
-
 		mono_marshal_shared_mb_emit_exception_marshal_directive (mb, msg);
 		break;
 	}

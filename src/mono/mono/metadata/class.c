@@ -52,7 +52,6 @@
 #include <mono/utils/checked-build.h>
 // for dn_simdhash_ght_t
 #include "../native/containers/dn-simdhash-specializations.h"
-
 MonoStats mono_stats;
 
 /* Statistics */
@@ -4827,7 +4826,6 @@ handle_enum:
 	case MONO_TYPE_VAR:
 	case MONO_TYPE_MVAR: {
 		int align;
-
 		return mono_type_size (type, &align);
 	}
 	case MONO_TYPE_VOID:
